@@ -19,6 +19,7 @@ Android app (v1) that finds files untouched for a long time and removes them to 
 - Confirmation required before every deletion: confirm dialog on Move to trash (count + size + list); stronger confirm on Delete now / Empty trash (permanent, typed or explicit). Cache clear confirmed by Android system prompt.
 - 30-day purge: daily background check notifies when items pass 30 days; nothing is deleted until user opens and confirms. Ignored items stay in trash.
 - Design part 1 (components) approved with confirmation additions.
+- Design part 2 (data flow) approved.
 
 ## Next
 - Present design section by section for approval (components, data flow, error handling, testing)

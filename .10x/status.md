@@ -20,6 +20,13 @@ Android app (v1) that finds files untouched for a long time and removes them to 
 - 30-day purge: daily background check notifies when items pass 30 days; nothing is deleted until user opens and confirms. Ignored items stay in trash.
 - Design part 1 (components) approved with confirmation additions.
 - Design part 2 (data flow) approved.
+- Design part 3 (error handling) approved, plus uninstall-survival requirement:
+  - Trash folder is VISIBLE: 'StorageCleaner Trash/' per volume (with .nomedia), mirrors original folder structure, keeps original filenames (suffix on collision)
+  - README.txt + manifest.json in each trash folder for manual recovery without the app
+  - Reinstalled app adopts existing trash folders from manifest
+  - Settings (threshold, exclusions) backed up via Android Auto Backup; scan index excluded (rebuildable)
+  - android:hasFragileUserData=true so uninstall dialog offers to keep app data
+  - Android gives no pre-uninstall hook; no warning at uninstall time is possible
 
 ## Next
 - Present design section by section for approval (components, data flow, error handling, testing)

@@ -1,10 +1,12 @@
 # Handoff
 
 **From:** Brainstorming (all roles)
-**To:** — (brainstorming in progress)
+**To:** Strategy (CTO + Product Manager) — after user approves spec
 
-Waiting on user answers to clarifying questions. Key platform constraints to resolve before design:
-- iOS sandboxing prevents access to other apps' files and caches.
-- Android 11+ scoped storage; broad file access needs MANAGE_EXTERNAL_STORAGE (Play policy-restricted).
-- Clearing other apps' caches is not possible for regular apps on modern Android (CLEAR_APP_CACHE is system-only); options are deep-linking to per-app storage settings or an Accessibility-service automation.
-- "Untouched" must likely be based on last-modified time; last-access time is unreliable on mobile filesystems.
+Spec: `.10x/specs/2026-10-06-storage-cleaner-design.md` (status: awaiting user review)
+
+Summary for Phase 1:
+- Android-only v1, Flutter + small Kotlin bridge; iOS deferred.
+- Review -> confirm -> recoverable trash; nothing deleted without explicit confirmation; 30-day purge is notify-and-ask.
+- Trash is uninstall-safe: visible per-volume folder mirroring original paths, README + manifest.json.
+- Biggest strategic risk: Play Store approval for MANAGE_EXTERNAL_STORAGE. CTO should assess fallback (SAF folder picker) and build-vs-buy (many cleaner apps exist; differentiator is safety/recoverability).

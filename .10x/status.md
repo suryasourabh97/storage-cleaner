@@ -1,7 +1,7 @@
 # Project Status — storage-cleaner
 
 **Feature slug:** `storage-cleaner`
-**Current phase:** Phase 0 — Brainstorming (in progress)
+**Current phase:** Phase 0 — Brainstorming: spec written, awaiting user review
 **Started:** 2026-10-06
 
 ## Idea
@@ -28,8 +28,11 @@ Android app (v1) that finds files untouched for a long time and removes them to 
   - android:hasFragileUserData=true so uninstall dialog offers to keep app data
   - Android gives no pre-uninstall hook; no warning at uninstall time is possible
 
+- Design part 4 (testing strategy) presented; user asked for spec.
+
 ## Next
-- Present design section by section for approval (components, data flow, error handling, testing)
+- User reviews `.10x/specs/2026-10-06-storage-cleaner-design.md`
+- On approval: Phase 1 (Strategy — CTO + PM)
 
 ## Blockers
 None yet.

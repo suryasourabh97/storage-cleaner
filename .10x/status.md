@@ -1,7 +1,8 @@
 # Project Status — storage-cleaner
 
 **Feature slug:** `storage-cleaner`
-**Current phase:** Phase 0 — Brainstorming: spec written, awaiting user review
+**Current phase:** Phase 1 — Strategy (CTO + PM) in progress
+**Phase 0:** Complete — spec approved 2026-10-06
 **Started:** 2026-10-06
 
 ## Idea
@@ -31,8 +32,7 @@ Android app (v1) that finds files untouched for a long time and removes them to 
 - Design part 4 (testing strategy) presented; user asked for spec.
 
 ## Next
-- User reviews `.10x/specs/2026-10-06-storage-cleaner-design.md`
-- On approval: Phase 1 (Strategy — CTO + PM)
+- Phase 1: business context, competitive landscape, build-vs-buy, scope (P0-P3), success metrics
 
 ## Blockers
 None yet.

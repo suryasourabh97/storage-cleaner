@@ -5,7 +5,7 @@
 **Started:** 2026-10-06
 
 ## Idea
-Mobile app that finds files untouched for a long time and removes them to free space, plus clears installed apps' cache.
+Android app (v1) that finds files untouched for a long time and removes them to free space, plus clears installed apps' cache.
 
 ## Answered
 - Platform: Android + iOS via cross-platform framework (iOS will be a reduced feature set)
@@ -14,9 +14,10 @@ Mobile app that finds files untouched for a long time and removes them to free s
 - App cache (Android only): list apps by cache size via StorageStatsManager (Usage access permission); 'Clean all' via system clear-all-caches prompt on Android 11+; per-app deep link to app storage settings (all versions, only option on 8-10). No Accessibility automation. iOS: no cache feature.
 - Staleness: file last-modified older than threshold; user picker 3m/6m/1y/2y, default 6 months; changing threshold re-filters cached scan results (no rescan). Per-category thresholds deferred.
 - Scan scope (Android): all readable shared storage; camera media (DCIM) shown but unselected by default; skip hidden dirs/config files; user-managed exclusion list.
+- Release plan: v1 is Android-only. Flutter codebase stays iOS-ready; iOS (likely photos-only via PhotoKit) is a later release.
 
 ## Open questions
-- iOS feature scope
+- Architecture approach (where scanning runs, index storage, trash mechanism)
 
 ## Blockers
 None yet.

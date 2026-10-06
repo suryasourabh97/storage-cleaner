@@ -15,9 +15,10 @@ Android app (v1) that finds files untouched for a long time and removes them to 
 - Staleness: file last-modified older than threshold; user picker 3m/6m/1y/2y, default 6 months; changing threshold re-filters cached scan results (no rescan). Per-category thresholds deferred.
 - Scan scope (Android): all readable shared storage; camera media (DCIM) shown but unselected by default; skip hidden dirs/config files; user-managed exclusion list.
 - Release plan: v1 is Android-only. Flutter codebase stays iOS-ready; iOS (likely photos-only via PhotoKit) is a later release.
+- Architecture approach: A — Dart-side scan in background isolate + local SQLite index; Kotlin only for permissions, app-cache stats/intents; MediaStore used for quick first estimate; trash = same-volume rename into hidden folder.
 
-## Open questions
-- Architecture approach (where scanning runs, index storage, trash mechanism)
+## Next
+- Present design section by section for approval (components, data flow, error handling, testing)
 
 ## Blockers
 None yet.

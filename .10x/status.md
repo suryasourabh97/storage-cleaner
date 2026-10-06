@@ -9,9 +9,10 @@ Mobile app that finds files untouched for a long time and removes them to free s
 
 ## Answered
 - Platform: Android + iOS via cross-platform framework (iOS will be a reduced feature set)
+- Framework: Flutter (Dart) with Kotlin/Swift platform channels for native storage APIs
 
 ## Open questions
-- Framework: Flutter vs React Native
+- Deletion behavior: review-first vs recoverable trash vs automatic
 
 ## Blockers
 None yet.

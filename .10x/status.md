@@ -1,7 +1,7 @@
 # Project Status — storage-cleaner
 
 **Feature slug:** `storage-cleaner`
-**Current phase:** Phase 0 — Brainstorming: revised Windows spec written, awaiting user review
+**Current phase:** Phase 0 — Brainstorming: adding duplicate finder + large-file finder to v1 (2026-10-07)
 **Phase 0:** Complete — spec approved 2026-10-06
 **Started:** 2026-10-06
 
@@ -41,8 +41,15 @@ Decided:
 - Scan scope: user profile folders + other fixed data drives. Never Windows, Program Files, ProgramData, AppData. Pictures shown but unselected by default. OneDrive: skip online-only placeholders; old locally-stored synced files get 'Free up space' (dehydrate to online-only, file stays in cloud) instead of trash. Non-synced files use trash flow.
 - Purge reminder: per-user daily Windows Task Scheduler task (no admin) runs the app in hidden check mode; shows toast if trash items >30 days; click opens Trash. Task removed on uninstall. Never deletes.
 
+## Scope addition (2026-10-07)
+User added to v1: duplicate file detection, large-file finder independent of age.
+Open questions:
+- What counts as a duplicate (exact content vs name/size vs similar photos)
+- Which copy is kept by default
+- Large-file threshold
+
 ## Next
-- User reviews `.10x/specs/2026-10-07-storage-cleaner-windows-design.md`
+- Resolve open questions, update Windows spec, then user reviews `.10x/specs/2026-10-07-storage-cleaner-windows-design.md`
 - On approval: resume Phase 1 (Strategy). Unanswered Phase 1 question: app purpose (public product / internal-showcase / client deliverable)
 
 ## Blockers

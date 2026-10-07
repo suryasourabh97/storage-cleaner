@@ -36,3 +36,29 @@
 - Very long mirrored trash paths (> 32k chars) not shortened yet; Windows adapter must use `\\?\` prefixes.
 - Drive-letter change for USB drives is handled in manifests (`originalRelative`) but has no test yet (fake can't remap letters).
 - `RestoreInto` a folder outside scan roots is rejected by the guard; UI must restrict the folder picker.
+
+## Milestone 2 (Windows app) — 2026-10-07
+
+### Built (`app/`)
+| Area | Files |
+|------|-------|
+| Win32 adapter | `lib/platform/windows/windows_fs.dart` (FindFirstFile listing, reparse-tag classification, no-copy MoveFileEx, leaf FFI error codes), `system_info.dart` (known folders, OneDrive roots, drives, disk space) |
+| Services | `lib/services/app_controller.dart` (engine wiring, launch reconciliation), `scan_worker.dart` (isolate scan, shared-memory cancel), `settings.dart` |
+| UI | `lib/main.dart`, `lib/ui/home_page.dart`, `files_page.dart` (old + large), `trash_page.dart`, `settings_page.dart`, `widgets/confirm_dialogs.dart`, `format.dart` |
+| CI | `.github/workflows/app.yml` (windows-latest: generate runner, analyze, test, build, upload exe) |
+
+### Verification
+- Windows CI: analyze clean; **15 app tests passed** on real NTFS; release build succeeded and uploaded.
+- Bug found by CI and fixed: `GetLastError` returned 0 after ordinary FFI calls (runtime clobbers last-error) → missing files reported as I/O errors. Fixed with leaf bindings + type-check fallback.
+
+### Deviations
+- Riverpod replaced by `ChangeNotifier` (see senior-engineer M2 notes).
+- Windows runner is generated in CI by `flutter create` (not committed) until M6 needs runner changes.
+- OneDrive files are listed but not selectable until M5 (Free up space).
+- Old/large queries and trash moves run on the UI isolate; fine for typical sizes, may stutter on very large result sets (> ~100k rows). Move to isolate if it shows in testing.
+- No onboarding screen yet; scheduled-task reminder is M6 (banner on Home covers purge-ready items meanwhile).
+- `index.db` lives in `%LOCALAPPDATA%\StorageCleaner`; settings in `%APPDATA%\StorageCleaner\settings.json`.
+
+### Tech debt
+- File IDs not read during scan (needed in M3 for hard links).
+- No widget tests for screens yet (only logic + real-FS tests).

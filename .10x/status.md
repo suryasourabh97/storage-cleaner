@@ -59,7 +59,8 @@ Decided:
 
 ## Next
 - M1 (core engine): **verified 2026-10-07** — GitHub Actions: `dart analyze` clean, 58 tests passed (26 safety-tagged). Repo: github.com/suryasourabh97/storage-cleaner
-- Next: M2 — Windows adapter (Dart FFI) + Flutter UI for scan / old / large / trash / settings; add a windows-latest CI job building the app.
+- M2 (Windows app, first usable build): **built and tested 2026-10-07** — Windows CI: flutter analyze clean, 15 app tests passed (real NTFS: junctions, hidden/system, long paths, no-overwrite move, full scan→trash→restore cycle); release build uploaded as artifact `StorageCleaner-windows-x64` (run 37597428078). Core: 60 tests passed.
+- Awaiting: user hands-on test of the M2 build. Next: M3 (exact duplicates).
 
 ## Blockers
 - None. Build loop = GitHub Actions (raw logs not readable from the cloud workspace; findings are surfaced as annotations).

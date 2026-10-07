@@ -63,9 +63,9 @@ Nothing is ever permanently deleted without explicit user confirmation, and tras
 | D12 | Architecture | Scan in Dart (background isolate) into a local SQLite index |
 | D13 | Duplicates | Identical content only: group by exact size → sample hash → full SHA-256. Online-only OneDrive files never read. Hard links to the same file are not duplicates |
 | D14 | Duplicate keep rule | Preselect extras, user reviews. Keep priority: OneDrive copy → copy in Documents/Pictures/Desktop/Videos over Downloads or temp-like folders → oldest. At least one copy per group is always kept |
+| D15 | Large files | Any age; threshold picker 100 MB / 250 MB / 500 MB / 1 GB / 2 GB, default 500 MB; files modified in the last 7 days shown but unselected |
 | D16 | Similar photos | Near-identical copies only (resized, re-compressed, format-converted, light edits), strict fixed threshold. Burst/series shots not grouped |
 | D17 | Similar-photo keep rule | Keep highest quality: most pixels → larger file → Pictures/Documents/Desktop over Downloads or temp-like → oldest; others preselected. Groups with an edited copy (crop or color change) flagged "Edited versions — choose yourself", nothing preselected. At least one photo per group always kept |
-| D15 | Large files | Any age; threshold picker 100 MB / 250 MB / 500 MB / 1 GB / 2 GB, default 500 MB; files modified in the last 7 days shown but unselected |
 
 ### Why not the Windows Recycle Bin (D4)
 - Files larger than the bin's size limit are deleted permanently instead of recycled.

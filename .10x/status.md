@@ -43,8 +43,9 @@ Decided:
 
 ## Scope addition (2026-10-07)
 User added to v1: duplicate file detection, large-file finder independent of age.
+Decided:
+- Duplicates = identical content only. Pipeline: group by exact size -> partial sample hash -> full hash. Online-only OneDrive files never read. Similar-photo detection deferred.
 Open questions:
-- What counts as a duplicate (exact content vs name/size vs similar photos)
 - Which copy is kept by default
 - Large-file threshold
 

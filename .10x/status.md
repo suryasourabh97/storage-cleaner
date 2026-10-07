@@ -1,7 +1,7 @@
 # Project Status — storage-cleaner
 
 **Feature slug:** `storage-cleaner`
-**Current phase:** Phase 1 — Strategy (CTO + PM) in progress
+**Current phase:** Phase 0 — Brainstorming (reopened 2026-10-07 for scope change)
 **Phase 0:** Complete — spec approved 2026-10-06
 **Started:** 2026-10-06
 
@@ -31,8 +31,15 @@ Android app (v1) that finds files untouched for a long time and removes them to 
 
 - Design part 4 (testing strategy) presented; user asked for spec.
 
+## Scope change (2026-10-07)
+User asked to update the application to clean unused files on laptops. Phase 1 paused (purpose question unanswered) and brainstorming reopened.
+Open questions:
+- Laptop support replaces Android, or is added alongside it?
+- Which desktop OSes (Windows / macOS / Linux)?
+- Laptop-specific design: OS Recycle Bin/Trash vs own trash, app caches, last-access time availability
+
 ## Next
-- Phase 1: business context, competitive landscape, build-vs-buy, scope (P0-P3), success metrics
+- Resolve scope-change questions, revise spec, re-approve, then resume Phase 1
 
 ## Blockers
 None yet.

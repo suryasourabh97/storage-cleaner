@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: app
@@ -68,3 +70,25 @@ jobs:
           name: StorageCleaner-windows-x64
           path: app/build/windows/x64/runner/Release/
           if-no-files-found: error
+
+      - name: Render screenshots
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          flutter test test_screenshots --update-goldens
+          mkdir -p "$RUNNER_TEMP/shots"
+          cp test_screenshots/screenshots/*.png "$RUNNER_TEMP/shots/"
+          echo "::notice title=Screenshots::$(ls test_screenshots/screenshots | tr '\n' ' ')"
+
+      - name: Publish screenshots to the ci-screenshots branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: .
+        run: |
+          cd "$RUNNER_TEMP"
+          rm -rf pub && mkdir pub && cd pub
+          git init -q
+          git checkout -q -b ci-screenshots
+          cp ../shots/*.png .
+          echo "Screenshots rendered by CI for commit $GITHUB_SHA" > README.md
+          git add .
+          git -c user.name="ci" -c user.email="ci@users.noreply.github.com" commit -qm "Screenshots for $GITHUB_SHA"
+          git push -fq "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" ci-screenshots

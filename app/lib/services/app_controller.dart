@@ -54,20 +54,30 @@ final class AppController extends ChangeNotifier {
     required this.settingsPath,
     required this.settings,
     required this.folders,
+    this.includeOtherDrives = true,
   }) {
     _rebuildEngine();
   }
 
   /// Opens (or creates) the app's data and reconciles the trash.
-  static AppController open() {
+  ///
+  /// The optional arguments exist for tests and screenshots: a separate data
+  /// folder, a stand-in user profile, and no scanning of other drives.
+  static AppController open({
+    String? dataDirOverride,
+    KnownFolders? foldersOverride,
+    bool includeOtherDrives = true,
+  }) {
     final local = Platform.environment['LOCALAPPDATA'] ??
         '${Platform.environment['USERPROFILE']}\\AppData\\Local';
     final roaming = Platform.environment['APPDATA'] ??
         '${Platform.environment['USERPROFILE']}\\AppData\\Roaming';
-    final dataDir = Directory('$local\\StorageCleaner')
+    final dataDir = Directory(dataDirOverride ?? '$local\\StorageCleaner')
       ..createSync(recursive: true);
     final dbPath = '${dataDir.path}\\index.db';
-    final settingsPath = '$roaming\\StorageCleaner\\settings.json';
+    final settingsPath = dataDirOverride == null
+        ? '$roaming\\StorageCleaner\\settings.json'
+        : '$dataDirOverride\\settings.json';
 
     final c = AppController._(
       fs: WindowsPlatformFs(),
@@ -75,7 +85,8 @@ final class AppController extends ChangeNotifier {
       dbPath: dbPath,
       settingsPath: settingsPath,
       settings: AppSettings.load(settingsPath),
-      folders: resolveKnownFolders(),
+      folders: foldersOverride ?? resolveKnownFolders(),
+      includeOtherDrives: includeOtherDrives,
     );
     c.lastReconcile = c.reconciler.run(trashRoots: c.trashRoots);
     return c;
@@ -87,6 +98,7 @@ final class AppController extends ChangeNotifier {
   final String settingsPath;
   final AppSettings settings;
   final KnownFolders folders;
+  final bool includeOtherDrives;
   static const clock = SystemClock();
 
   late List<DriveInfo> drives;
@@ -112,7 +124,8 @@ final class AppController extends ChangeNotifier {
     scanRoots = [
       profile,
       for (final d in drives)
-        if (!samePath(d.root, systemDrive) &&
+        if (includeOtherDrives &&
+            !samePath(d.root, systemDrive) &&
             (d.kind == DriveKind.fixed ||
                 (d.kind == DriveKind.removable &&
                     settings.scanRemovableDrives)))

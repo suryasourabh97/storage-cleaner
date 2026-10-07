@@ -146,9 +146,17 @@ final class BatchResult {
 }
 
 /// Cooperative cancellation for long operations.
+///
+/// [probe] lets a token observe a flag set elsewhere, e.g. shared native
+/// memory written by another isolate (a busy synchronous isolate cannot
+/// receive port messages).
 final class CancelToken {
+  CancelToken([this._probe]);
+
+  final bool Function()? _probe;
   bool _cancelled = false;
-  bool get isCancelled => _cancelled;
+
+  bool get isCancelled => _cancelled || (_probe?.call() ?? false);
   void cancel() => _cancelled = true;
 }
 

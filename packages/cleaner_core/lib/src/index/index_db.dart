@@ -106,6 +106,8 @@ final class IndexDb {
   factory IndexDb.open(String filePath) {
     final db = sqlite3.open(filePath);
     db.execute('PRAGMA journal_mode = WAL');
+    // The app reads while a background isolate scans into the same file.
+    db.execute('PRAGMA busy_timeout = 5000');
     return IndexDb._(db);
   }
 

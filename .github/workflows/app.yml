@@ -1,0 +1,58 @@
+name: app (Windows)
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: app
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Windows runner (until it is committed in M6)
+        run: |
+          flutter create --platforms=windows --project-name storage_cleaner --org com.storagecleaner .
+          # flutter create adds a counter-app test that doesn't apply here.
+          if grep -q "MyApp" test/widget_test.dart 2>/dev/null; then rm test/widget_test.dart; fi
+
+      - run: flutter pub get
+
+      - name: Analyze
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos > analyze.txt 2>&1
+          code=$?
+          cat analyze.txt
+          grep -E "^\s*(error|warning|info) •" analyze.txt | head -40 | while IFS= read -r l; do
+            lvl=$(echo "$l" | sed -E 's/^\s*(error|warning|info).*/\1/')
+            [ "$lvl" = info ] && lvl=notice
+            echo "::${lvl} title=flutter analyze::${l}"
+          done
+          exit $code
+
+      - name: Test (real Windows file system)
+        run: |
+          set -o pipefail
+          flutter test --reporter github 2>&1 | tee test.txt
+          echo "::notice title=App test totals::$(grep -E 'tests? (passed|failed)|All tests|Some tests' test.txt | tail -1)"
+
+      - name: Build
+        run: flutter build windows --release
+
+      - name: Upload app
+        uses: actions/upload-artifact@v4
+        with:
+          name: StorageCleaner-windows-x64
+          path: app/build/windows/x64/runner/Release/
+          if-no-files-found: error

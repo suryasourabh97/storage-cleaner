@@ -39,4 +39,8 @@ jobs:
           [ "$code" != 0 ] && echo "::error title=dart analyze (all findings)::${summary}"
           exit $code
       - name: Test
-        run: dart test --reporter github
+        run: |
+          set -o pipefail
+          dart test --reporter github 2>&1 | tee test.txt
+          echo "::notice title=Test totals::$(grep -E 'tests? (passed|failed)|All tests|Some tests' test.txt | tail -1)"
+          echo "::notice title=Safety tests::$(dart test -t safety --reporter github 2>&1 | tail -1)"

@@ -16,3 +16,12 @@
 - Case-insensitive path identity and segment-aware prefix checks.
 - Atomic manifest writes on Windows: write `manifest.json.tmp` then `MoveFileEx(REPLACE_EXISTING)`; in fake, rename semantics.
 - Never trusting index data at action time: always re-stat.
+
+## M2 implementation approach
+- **Listing:** `FindFirstFileW`/`FindNextFileW` with `\\?\` long-path prefix; one call gives name, size, attributes, last-write time and (for reparse points) the tag in `dwReserved0`. `isLink` = name-surrogate tag (bit 0x20000000): junctions/symlinks/mount points yes, OneDrive cloud tags no. Online-only = `RECALL_ON_DATA_ACCESS` | `RECALL_ON_OPEN` | `OFFLINE`. Pinned = `PINNED` attribute.
+- **No file handles opened during scan** (file IDs deferred to M3, where duplicates need them).
+- **Volume serial:** `GetVolumeInformationW` per drive root, cached ~2 s (drives can be unplugged).
+- **Moves:** `MoveFileExW(from, to, 0)` — no `MOVEFILE_COPY_ALLOWED`, no replace. Manifest replace uses `MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH`.
+- **Background scan:** `Isolate.spawn`; worker opens its own `IndexDb` (WAL). Cancellation via a shared native `Int32` flag (FFI memory) read by `CancelToken`'s probe, because a busy synchronous isolate can't process port messages.
+- **State management:** plain `ChangeNotifier` + `ListenableBuilder` instead of Riverpod — no codegen, fewer API-version risks while compiling blind. (Deviation from staff-engineer note; revisit if state grows.)
+- **OneDrive files** are listed but "Free up space" is disabled until M5 (shown, not selectable).

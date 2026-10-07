@@ -39,3 +39,14 @@
 | No Flutter/Dart toolchain in cloud workspace | Verify via user's Windows PC (linked) or GitHub Actions `windows-latest` + `ubuntu-latest` for core |
 | sqlite3 native lib for core tests | Ubuntu CI has libsqlite3; Windows CI uses `sqlite3` package's bundled/provided DLL — confirm in 1.1 |
 | win32 coverage for WIC/CNG | Spike at start of M2/M4 |
+
+## M2 task breakdown (2026-10-07)
+| # | Task | Depends on |
+|---|------|-----------|
+| 2.1 | `app/` Flutter project + windows-latest workflow (generate runner with `flutter create`, analyze, test, build, upload exe artifact) | M1 |
+| 2.2 | `WindowsPlatformFs` via FFI + known folders, drives, disk space; real-filesystem tests on the Windows runner | 2.1 |
+| 2.3 | App services: engine wiring, scan in a background isolate (progress, cross-isolate cancel), settings file, launch reconciliation | 2.2 |
+| 2.4 | Screens: Home, Old Files, Large Files, Trash, Settings + confirmation dialogs | 2.3 |
+| 2.5 | CI green, state files, deliver build | all |
+
+Verification loop: GitHub Actions (findings surfaced as annotations).

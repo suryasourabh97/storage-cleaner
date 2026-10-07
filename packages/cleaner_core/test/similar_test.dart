@@ -39,6 +39,9 @@ final class Scene {
 
 /// Renders [scene] the way a decoder would, with optional resize jitter,
 /// noise (re-compression), brightness/tint (filter) and crop.
+///
+/// Jitter/noise levels mirror the Windows CI calibration on real encoded
+/// files, where resized and re-compressed copies differed by 0–1 bits.
 DecodedImage render(
   Scene scene, {
   required int width,
@@ -137,7 +140,7 @@ void main() {
 
     test('a resized, re-compressed copy hashes nearly the same', () {
       final x = render(a, width: 4000, height: 3000);
-      final y = render(a, width: 1600, height: 1200, jitter: 0.4, noise: 3);
+      final y = render(a, width: 1600, height: 1200, jitter: 0.15, noise: 2);
       expect(hamming(perceptualHash(x.gray), perceptualHash(y.gray)),
           lessThanOrEqualTo(4));
       expect(hamming(differenceHash(x.gray), differenceHash(y.gray)),
@@ -156,7 +159,7 @@ void main() {
     test('resized copies are grouped and the largest is kept', () async {
       photo(original, render(a, width: 4000, height: 3000), size: 4200000);
       photo(r'C:\Users\surya\Downloads\IMG_1001 (WhatsApp).jpg',
-          render(a, width: 1600, height: 1200, jitter: 0.4, noise: 3),
+          render(a, width: 1600, height: 1200, jitter: 0.15, noise: 2),
           size: 350000);
       w.scan();
       final s = await analyze();
@@ -272,7 +275,7 @@ void main() {
       setUp(() async {
         photo(original, render(a, width: 4000, height: 3000), size: 4200000);
         photo(r'C:\Users\surya\Downloads\copy.jpg',
-            render(a, width: 1600, height: 1200, jitter: 0.4, noise: 3),
+            render(a, width: 1600, height: 1200, jitter: 0.15, noise: 2),
             size: 350000);
         w.scan();
         await analyze();

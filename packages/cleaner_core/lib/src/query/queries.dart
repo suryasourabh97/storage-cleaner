@@ -1,5 +1,4 @@
 import '../index/index_db.dart';
-import '../model/models.dart';
 import '../model/path_key.dart';
 
 /// A file offered for cleanup, with the default selection and action.

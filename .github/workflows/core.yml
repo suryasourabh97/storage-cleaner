@@ -11,12 +11,32 @@ jobs:
       run:
         working-directory: packages/cleaner_core
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
       - name: Install SQLite
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
       - run: dart pub get
-      - run: dart analyze --fatal-infos
-      - run: dart test --reporter expanded
+      - name: Analyze
+        # Every finding becomes an annotation (readable from the API even
+        # when raw logs are not).
+        run: |
+          set +e
+          dart analyze --format=machine > analyze.txt 2>&1
+          code=$?
+          while IFS='|' read -r sev type rule file line col len msg; do
+            [ -z "$file" ] && continue
+            rel="${file#$GITHUB_WORKSPACE/}"
+            case "$sev" in
+              ERROR) level=error ;;
+              WARNING) level=warning ;;
+              *) level=notice ;;
+            esac
+            echo "::${level} file=${rel},line=${line},col=${col},title=${rule}::${msg}"
+          done < analyze.txt
+          summary=$(sed 's/%/%25/g' analyze.txt | awk '{printf "%s%%0A", $0}')
+          [ "$code" != 0 ] && echo "::error title=dart analyze (all findings)::${summary}"
+          exit $code
+      - name: Test
+        run: dart test --reporter github

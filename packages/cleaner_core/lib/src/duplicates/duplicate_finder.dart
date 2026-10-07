@@ -2,6 +2,7 @@ import '../index/index_db.dart';
 import '../model/models.dart';
 import '../model/path_key.dart';
 import '../platform/platform_fs.dart';
+import '../scan/categorizer.dart';
 import '../trash/trash_manager.dart';
 import 'hasher.dart';
 import 'keep_rules.dart';
@@ -112,8 +113,10 @@ final class DuplicateFinder {
     try {
       // 1. Same-size groups, without exclusions and hard links.
       final candidates = [
-        for (final r in _db.duplicateCandidates(minSize))
-          if (!exclusions.any((e) => isWithinOrEqual(e, r.path))) r,
+        for (final r in _db.duplicateCandidates(_floor(minSize)))
+          if (_qualifies(r, minSize) &&
+              !exclusions.any((e) => isWithinOrEqual(e, r.path)))
+            r,
       ];
       final bySize = <int, List<FileRecord>>{};
       for (final r in candidates) {
@@ -259,6 +262,18 @@ final class DuplicateFinder {
   }
 }
 
+/// Smallest image file compared, whatever the general minimum (images
+/// matter even when small: screenshots, messaging copies).
+const minImageBytes = 20 * 1024;
+
+int _floor(int minSize) => minSize < minImageBytes ? minSize : minImageBytes;
+
+/// General files must reach [minSize]; image files only [minImageBytes].
+bool _qualifies(FileRecord r, int minSize) =>
+    r.size >= minSize ||
+    (r.size >= minImageBytes &&
+        Categorizer.imageExt.contains(winPath.extension(r.path).toLowerCase()));
+
 /// Current duplicate groups from stored hashes, largest reclaimable space
 /// first. Hard links are collapsed; each group's best copy comes first.
 List<DuplicateGroup> duplicateGroups(
@@ -268,7 +283,8 @@ List<DuplicateGroup> duplicateGroups(
   KeepRules? rules,
 }) {
   final byKey = <(int, String), List<FileRecord>>{};
-  for (final r in db.fullHashMatches(minSize)) {
+  for (final r in db.fullHashMatches(_floor(minSize))) {
+    if (!_qualifies(r, minSize)) continue;
     if (exclusions.any((e) => isWithinOrEqual(e, r.path))) continue;
     byKey.putIfAbsent((r.size, r.fullHash!), () => []).add(r);
   }

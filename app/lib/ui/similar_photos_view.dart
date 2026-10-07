@@ -127,7 +127,7 @@ class _SimilarPhotosViewState extends State<SimilarPhotosView> {
             ? 'Use "Find duplicates" above. Photos are compared from small '
                 'previews; only new or changed photos are looked at again.'
             : 'No two photos look like copies of each other.'
-                '${s != null && s.unsupported > 0 ? ' ${plural(s.unsupported, 'HEIC photo')} could not be checked yet.' : ''}',
+                '${s != null && s.unsupported > 0 ? ' ${plural(s.unsupported, 'photo')} in HEIC, TIFF or RAW format could not be checked yet.' : ''}',
       );
     }
     final count = _selectedCount;
@@ -143,8 +143,8 @@ class _SimilarPhotosViewState extends State<SimilarPhotosView> {
                 return Padding(
                   padding: const EdgeInsets.fromLTRB(32, 16, 32, 0),
                   child: Text(
-                    '${plural(s!.unsupported, 'HEIC photo')} could not be '
-                    'checked yet; this format is not supported in this version.',
+                    '${plural(s!.unsupported, 'photo')} in HEIC, TIFF or RAW '
+                    'format could not be checked yet.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 );

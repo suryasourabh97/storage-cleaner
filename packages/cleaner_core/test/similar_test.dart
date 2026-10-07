@@ -239,6 +239,24 @@ void main() {
     });
   });
 
+  group('which files are compared', () {
+    test('every image file anywhere, and image files of any type in Pictures',
+        () async {
+      photo(r'C:\Users\surya\Documents\scan.jfif',
+          render(a, width: 2000, height: 1500));
+      photo(r'D:\Backup\old phone\IMG_1001.jpg',
+          render(a, width: 1600, height: 1200, jitter: 0.15, noise: 2));
+      photo(r'C:\Users\surya\Pictures\Exported\IMG_1001',
+          render(a, width: 800, height: 600, jitter: 0.15, noise: 2));
+      w.fs.addFile(r'C:\Users\surya\Pictures\clip.mp4', size: 900000);
+      w.scan();
+      await analyze();
+      expect(decoder.decoded.map(winPath.basename).toSet(),
+          {'scan.jfif', 'IMG_1001.jpg', 'IMG_1001'});
+      expect(groups().single.members, hasLength(3));
+    });
+  });
+
   group('safety and robustness', () {
     test('online-only photos are never decoded', () async {
       w.fs.addFile(r'C:\Users\surya\OneDrive - Harbinger\cloud.jpg',

@@ -88,6 +88,22 @@ void main() {
     );
   });
 
+  test('image files are compared even below the general minimum', () {
+    w.fs
+      ..addFile(r'C:\Users\surya\Pictures\Screenshots\shot.png',
+          bytes: content(4, 60000))
+      ..addFile(r'C:\Users\surya\Downloads\shot (1).png',
+          bytes: content(4, 60000))
+      ..addFile(r'C:\Users\surya\Documents\a.txt', bytes: content(5, 60000))
+      ..addFile(r'C:\Users\surya\Documents\b.txt', bytes: content(5, 60000));
+    w.scan();
+    analyze(minSize: 1 * mb);
+    final g = groups(minSize: mb);
+    expect(g, hasLength(1), reason: 'the two text files stay below 1 MB');
+    expect(g.single.members.map((m) => winPath.extension(m.path)).toSet(),
+        {'.png'});
+  });
+
   test('files below the minimum size are ignored', () {
     w.fs
       ..addFile(r'C:\Users\surya\Documents\a.txt', bytes: content(1, 100))

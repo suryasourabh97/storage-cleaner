@@ -10,8 +10,11 @@ import 'package:cleaner_core/cleaner_core.dart';
 final class FlutterImageDecoder implements ImageDecoder {
   const FlutterImageDecoder();
 
-  /// No engine codec for these yet.
-  static const unsupported = {'.heic', '.heif'};
+  /// No engine codec for these yet (counted as "could not be checked").
+  static const unsupported = {
+    '.heic', '.heif', '.avif', '.tif', '.tiff', '.svg',
+    '.raw', '.cr2', '.cr3', '.nef', '.arw', '.dng',
+  };
 
   @override
   Future<DecodeResult> decode(String path) async {

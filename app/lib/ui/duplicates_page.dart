@@ -133,9 +133,11 @@ class _DuplicatesPageState extends State<DuplicatesPage> {
       subtitle = 'Comparing files with the same size. Only files that might '
           'match are read.';
     } else if (_tab == _Tab.similar) {
-      subtitle = 'Photos that are the same picture saved at another size or '
-          'quality. The best-quality copy is kept; edited versions are left '
-          'for you to choose.';
+      final n = c.lastSimilar?.compared;
+      subtitle = 'Compares everything in Pictures and every image file in the '
+          'other scanned folders${n == null ? '' : ' (${plural(n, 'photo')})'}. '
+          'The best-quality copy is kept; edited versions are left for you '
+          'to choose.';
     } else if (latest == null) {
       subtitle = 'Finds files with exactly the same content, whatever their '
           'names. Files under ${minSizeLabel(c.settings.duplicateMin)} '

@@ -5,6 +5,7 @@ import '../index/index_db.dart';
 import '../model/models.dart';
 import '../model/path_key.dart';
 import '../platform/platform_fs.dart';
+import '../scan/categorizer.dart';
 import '../trash/trash_manager.dart';
 import 'image_decoder.dart';
 import 'perceptual_hash.dart';
@@ -28,9 +29,8 @@ final class SimilarityThresholds {
   final double maxColorDistance;
 }
 
-const photoExtensions = {
-  '.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif', '.heic', '.heif',
-};
+/// Image types compared (see [Categorizer.imageExt]).
+const photoExtensions = Categorizer.imageExt;
 
 /// Smallest photo file considered. The spec said 100 KB, but messaging-app
 /// copies (the most common resized copy) are often 50–100 KB; icons are
@@ -42,6 +42,7 @@ final class SimilarSummary {
   const SimilarSummary({
     required this.status,
     required this.groups,
+    required this.compared,
     required this.fingerprinted,
     required this.unsupported,
     required this.unreadable,
@@ -50,6 +51,9 @@ final class SimilarSummary {
 
   final RunStatus status;
   final int groups;
+
+  /// Photos available for comparison after this run (new and earlier).
+  final int compared;
 
   /// Photos newly fingerprinted in this run.
   final int fingerprinted;
@@ -113,7 +117,10 @@ final class SimilarPhotoFinder {
 
     final todo = [
       for (final r in _db.photoCandidates(minPhotoBytes))
-        if (photoExtensions.contains(winPath.extension(r.path).toLowerCase()) &&
+        if (Categorizer.isImagePath(
+              r.path,
+              picturesFolder: rules?.folders.pictures,
+            ) &&
             r.width == null &&
             !exclusions.any((e) => isWithinOrEqual(e, r.path)))
           r,
@@ -179,6 +186,7 @@ final class SimilarPhotoFinder {
     return SimilarSummary(
       status: status,
       groups: groups,
+      compared: _db.fingerprintedPhotos().length,
       fingerprinted: fingerprinted,
       unsupported: unsupported,
       unreadable: unreadable,

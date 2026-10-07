@@ -576,7 +576,6 @@ final class IndexDb {
     final rows = _db.select('''
       SELECT * FROM files
       WHERE state = 'indexed' AND online_only = 0 AND size_bytes >= ?
-        AND category IN ('pictures', 'downloads', 'documents', 'other')
       ORDER BY id
     ''', [minSize]);
     return [for (final r in rows) _record(r)];

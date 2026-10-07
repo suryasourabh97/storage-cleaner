@@ -62,13 +62,34 @@ final class Categorizer {
     '.mp3', '.wav', '.flac', '.aac', '.m4a', '.ogg', '.wma', '.opus', '.aiff',
   };
   static const pictureExt = {
-    '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tif', '.tiff', '.heic',
-    '.heif', '.webp', '.raw', '.cr2', '.cr3', '.nef', '.arw', '.dng', '.svg',
+    '.jpg', '.jpeg', '.jpe', '.jfif', '.png', '.gif', '.bmp', '.tif', '.tiff',
+    '.heic', '.heif', '.avif', '.webp', '.raw', '.cr2', '.cr3', '.nef',
+    '.arw', '.dng', '.svg',
   };
   static const documentExt = {
     '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.odt', '.ods',
     '.odp', '.txt', '.rtf', '.csv', '.md', '.epub', '.one', '.vsdx',
   };
+
+  /// Image file types compared for duplicates and similar photos.
+  static const imageExt = {
+    '.jpg', '.jpeg', '.jpe', '.jfif', '.png', '.webp', '.bmp', '.gif',
+    '.tif', '.tiff', '.heic', '.heif', '.avif',
+  };
+
+  /// Images used for photo comparison: any file with an image extension,
+  /// plus anything in the Pictures folder that isn't clearly another kind
+  /// of file (video, audio, document, archive, installer).
+  static bool isImagePath(String path, {String? picturesFolder}) {
+    final ext = winPath.extension(path).toLowerCase();
+    if (imageExt.contains(ext)) return true;
+    if (picturesFolder == null || !isWithin(picturesFolder, path)) return false;
+    return !videoExt.contains(ext) &&
+        !audioExt.contains(ext) &&
+        !documentExt.contains(ext) &&
+        !archiveExt.contains(ext) &&
+        !installerExt.contains(ext);
+  }
 
   Categorization categorize(String path) {
     final ext = winPath.extension(path).toLowerCase();

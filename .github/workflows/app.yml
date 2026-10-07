@@ -33,18 +33,24 @@ jobs:
       - name: Analyze
         run: |
           set +e
-          flutter analyze --no-fatal-infos > analyze.txt 2>&1
+          dart analyze --format=machine > analyze.txt 2>&1
           code=$?
-          cat analyze.txt
-          grep "•" analyze.txt | head -60 | while IFS= read -r l; do
-            case "$l" in
-              *error*) lvl=error ;;
-              *warning*) lvl=warning ;;
-              *) lvl=notice ;;
+          while IFS='|' read -r sev type rule file line col len msg; do
+            [ -z "$file" ] && continue
+            rel="${file#$GITHUB_WORKSPACE/}"
+            case "$sev" in
+              ERROR) level=error ;;
+              WARNING) level=warning ;;
+              *) level=notice ;;
             esac
-            echo "::${lvl} title=flutter analyze::${l}"
-          done
-          exit $code
+            echo "::${level} file=${rel},line=${line},title=${rule}::${msg}"
+          done < analyze.txt
+          if [ "$code" != 0 ]; then
+            summary=$(sed 's/%/%25/g' analyze.txt | awk '{printf "%s%%0A", $0}')
+            echo "::error title=dart analyze (all findings)::${summary}"
+          fi
+          # Infos don't fail the build; warnings and errors do.
+          grep -qE '^(ERROR|WARNING)\|' analyze.txt && exit 1 || exit 0
 
       - name: Test (real Windows file system)
         run: |

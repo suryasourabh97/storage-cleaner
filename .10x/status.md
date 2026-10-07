@@ -58,11 +58,8 @@ Decided:
 - Similar keep rule: highest quality kept (pixels > file size > location > oldest), rest preselected; if a copy looks edited (crop/aspect change or color change) the group is flagged 'Edited versions' with nothing preselected. >=1 kept, extras to trash, side-by-side previews.
 
 ## Next
-- M1 tasks:
-  - [ ] 1.1 skeleton + CI  - [ ] 1.2 models  - [ ] 1.3 platform interfaces + fake FS
-  - [ ] 1.4 PathGuard  - [ ] 1.5 FileMutator  - [ ] 1.6 IndexDb  - [ ] 1.7 Categorizer
-  - [ ] 1.8 Scanner  - [ ] 1.9 queries  - [ ] 1.10 Manifest  - [ ] 1.11 TrashManager
-  - [ ] 1.12 Reconciler  - [ ] 1.13 PurgeChecker  - [ ] 1.14 safety suite
+- M1 (core engine): **code complete, not yet compiled or run.** Tasks 1.1–1.14 written; syntax verified with a Dart parser. Needs `dart analyze` + `dart test` on a machine with the Dart SDK.
+- Next: get a build loop (user's linked Windows PC or GitHub Actions), fix any analyzer/test failures, then M2 (Windows adapter + Flutter UI).
 
 ## Blockers
 - Build environment: cloud workspace cannot download Flutter/Dart SDK (storage.googleapis.com, pub.dev blocked). Asked user: link Windows laptop, or GitHub Actions Windows CI.

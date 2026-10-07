@@ -1,13 +1,15 @@
 # Handoff
 
 ## Current Handoff
-**From:** Engineering Manager + Senior Engineer (Phase 3)
-**To:** SDE (Phase 4, Milestone 1)
+**From:** SDE (Phase 4, Milestone 1)
+**To:** SDE / QA — verify M1, then start M2
 
-Plan: `.10x/decisions/engineering-manager/storage-cleaner.md` (tasks 1.1–1.14 in order); approach: `.10x/decisions/senior-engineer/storage-cleaner.md`.
-Verification: toolchain unavailable in cloud workspace — code must be verified on user's Windows PC or CI.
+What was built: `.10x/decisions/sde/storage-cleaner.md`. Schema: `.10x/decisions/dba/storage-cleaner.md`.
+To verify: `cd packages/cleaner_core && dart pub get && dart analyze && dart test` (safety subset: `dart test -t safety`).
+Watch for: sqlite3 native library on Windows; deviation list in SDE file; OneDrive reparse-tag classification needed in M2 Windows adapter.
 
 ## Handoff History
+- 2026-10-07 Planning -> SDE: M1 tasks 1.1–1.14.
 - 2026-10-07 Design -> Planning: ADR-001..006, core/app split.
 - 2026-10-07 Strategy -> Design: build verdict, constraints, milestone-first.
 - 2026-10-07 Brainstorming -> Strategy: Windows spec approved (incl. duplicates, large files, similar photos).

@@ -1,0 +1,3 @@
+tags:
+  safety:
+    # Safety tests are release blockers; they must never be skipped.

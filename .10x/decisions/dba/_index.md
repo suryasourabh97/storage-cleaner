@@ -1,3 +1,5 @@
-# dba — decisions index
+# DBA — decisions index
 
-_No decisions yet._
+| Slug | Description | Status |
+|------|-------------|--------|
+| storage-cleaner | SQLite index schema v1, manifest-backed durability | Implemented (M1) |

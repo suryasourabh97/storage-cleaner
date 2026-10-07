@@ -2,7 +2,7 @@
 
 **Feature slug:** `storage-cleaner`
 **Date:** 2026-10-06
-**Status:** Approved (2026-10-06)
+**Status:** Superseded by `2026-10-07-storage-cleaner-windows-design.md` (v1 changed to Windows-only). Kept as the design for a possible later Android release.
 **Author:** 10x-Team (brainstorming, all roles) with Surya Modekurti
 
 ---

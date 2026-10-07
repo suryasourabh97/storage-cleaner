@@ -1,12 +1,12 @@
 # Project Status — storage-cleaner
 
 **Feature slug:** `storage-cleaner`
-**Current phase:** Phase 0 — Brainstorming (reopened 2026-10-07 for scope change)
+**Current phase:** Phase 0 — Brainstorming: revised Windows spec written, awaiting user review
 **Phase 0:** Complete — spec approved 2026-10-06
 **Started:** 2026-10-06
 
 ## Idea
-Android app (v1) that finds files untouched for a long time and removes them to free space, plus clears installed apps' cache.
+Windows laptop app (v1; was Android) that finds files untouched for a long time and removes them to free space, plus clears installed apps' cache.
 
 ## Answered
 - Platform: Android + iOS via cross-platform framework (iOS will be a reduced feature set)
@@ -42,7 +42,8 @@ Decided:
 - Purge reminder: per-user daily Windows Task Scheduler task (no admin) runs the app in hidden check mode; shows toast if trash items >30 days; click opens Trash. Task removed on uninstall. Never deletes.
 
 ## Next
-- Resolve scope-change questions, revise spec, re-approve, then resume Phase 1
+- User reviews `.10x/specs/2026-10-07-storage-cleaner-windows-design.md`
+- On approval: resume Phase 1 (Strategy). Unanswered Phase 1 question: app purpose (public product / internal-showcase / client deliverable)
 
 ## Blockers
 None yet.

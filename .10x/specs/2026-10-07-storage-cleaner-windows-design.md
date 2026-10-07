@@ -2,7 +2,7 @@
 
 **Feature slug:** `storage-cleaner`
 **Date:** 2026-10-07
-**Status:** Awaiting user review
+**Status:** Awaiting user review (updated 2026-10-07 with duplicate and large-file finders)
 **Supersedes:** `2026-10-06-storage-cleaner-design.md` (Android version — retained as a possible later release)
 **Author:** 10x-Team (brainstorming, all roles) with Surya Modekurti
 
@@ -10,10 +10,12 @@
 
 ## 1. Summary
 
-A Windows laptop app that frees disk space in two ways:
+A Windows laptop app that frees disk space in four ways:
 
 1. **Old files** — finds files in the user's folders and data drives not modified for longer than a user-chosen threshold, lets the user review them by category, and either moves them to a recoverable trash or, for OneDrive files, frees the local copy while keeping the file in the cloud.
-2. **App cache** — finds cache folders of common apps in the current user's account, shows their sizes, and clears them after confirmation.
+2. **Large files** — lists files above a user-chosen size, whatever their age.
+3. **Duplicate files** — finds files with identical content, preselects the extra copies using a "best copy" rule, and always keeps at least one copy.
+4. **App cache** — finds cache folders of common apps in the current user's account, shows their sizes, and clears them after confirmation.
 
 Nothing is ever permanently deleted without explicit user confirmation, and trashed files survive an accidental uninstall.
 
@@ -23,6 +25,8 @@ Nothing is ever permanently deleted without explicit user confirmation, and tras
 - Windows 10 (22H2) and Windows 11, x64
 - Runs under a standard (non-admin) user account; installs per-user without admin rights
 - Old-file scanning, review, trash, restore, confirmed permanent deletion
+- Large-file finder (any age)
+- Duplicate-file finder (identical content)
 - OneDrive "Free up space" for old synced files
 - User-level app-cache cleaning from a curated list
 - Uninstall-safe trash
@@ -35,7 +39,7 @@ Nothing is ever permanently deleted without explicit user confirmation, and tras
 - Network drives
 - Automatic (unreviewed) cleanup
 - Per-category age thresholds
-- Duplicate-file detection, large-file finder independent of age
+- Similar-photo detection (resized or re-saved copies)
 - Using the Windows Recycle Bin as the trash
 
 ## 3. Key decisions
@@ -54,6 +58,9 @@ Nothing is ever permanently deleted without explicit user confirmation, and tras
 | D10 | App cache | Current user only, no admin; curated cache-folder list; running apps skipped; deleted permanently after confirmation (not trashed) |
 | D11 | Purge reminder | Per-user daily Windows scheduled task running the app in hidden check mode; shows a notification; never deletes |
 | D12 | Architecture | Scan in Dart (background isolate) into a local SQLite index |
+| D13 | Duplicates | Identical content only: group by exact size → sample hash → full SHA-256. Online-only OneDrive files never read. Hard links to the same file are not duplicates |
+| D14 | Duplicate keep rule | Preselect extras, user reviews. Keep priority: OneDrive copy → copy in Documents/Pictures/Desktop/Videos over Downloads or temp-like folders → oldest. At least one copy per group is always kept |
+| D15 | Large files | Any age; threshold picker 100 MB / 250 MB / 500 MB / 1 GB / 2 GB, default 500 MB; files modified in the last 7 days shown but unselected |
 
 ### Why not the Windows Recycle Bin (D4)
 - Files larger than the bin's size limit are deleted permanently instead of recycled.
@@ -80,18 +87,28 @@ No admin rights are requested at any point.
 |--------|----------|
 | Home | Disk usage per drive, space held by old files, total app cache, Scan button with progress |
 | Old Files | Results grouped by category (Downloads, Documents, Videos, Audio, Pictures, Archives, Installers, Other), sorted by size. Each file shows its action: **Move to trash** or **Free up space (OneDrive)** |
+| Large Files | Files at or above the size threshold, largest first, with age and location; same per-file actions as Old Files |
+| Duplicates | Groups of identical files, largest wasted space first; in each group the kept copy is marked "Keep" and extras are preselected; user can change which copy is kept. "Find duplicates" button with progress and cancel |
 | App Cache | Apps ranked by cache size; per-app and "Clean selected"; running apps marked with "Close <app> to clean" |
 | Trash | Trashed files with original location and days remaining; Restore, Delete now, Empty trash |
-| Settings | Age threshold, excluded folders, drives to scan, "Empty all trash", "Open trash folder" |
+| Settings | Age threshold, large-file threshold, duplicate minimum size, excluded folders, drives to scan, "Empty all trash", "Open trash folder" |
 
 ### 5.2 Core logic (pure Dart)
 
 All file access goes through an abstraction (`package:file` plus a small platform interface for Windows-only attributes) so this layer runs against an in-memory filesystem in tests.
 
-- **Scanner** — walks scan roots in a background isolate; reads names, sizes, timestamps and attributes from directory listings only (never opens file contents); skips excluded folders, trash folders, and online-only OneDrive files; **never follows junctions, symbolic links or other reparse points**; writes to the index in batches; reports progress.
+- **Scanner** — walks scan roots in a background isolate; reads names, sizes, timestamps and attributes from directory listings only (never opens file contents — only the duplicate finder reads contents); skips excluded folders, trash folders, and online-only OneDrive files; **never follows junctions, symbolic links or other reparse points**; writes to the index in batches; reports progress.
 - **File index** — SQLite database (`drift`) of scanned files.
 - **Categorizer** — category from extension and folder; marks Pictures as protected (unselected by default); marks files under OneDrive roots as `cloud_synced`.
 - **Trash manager** — moves, restores, permanently deletes; maintains per-drive manifests; reconciles interrupted operations.
+- **Duplicate finder** — runs after a scan, in a background isolate, cancellable and resumable. Pipeline:
+  1. Candidates: indexed files ≥ the minimum size (default 1 MB, adjustable), not online-only, not in excluded or trash folders.
+  2. Group by exact size; drop sizes with a single file.
+  3. Collapse hard links (same NTFS file ID) — they share storage, so removing one frees nothing.
+  4. Sample hash (first, middle and last 64 KB); drop unique samples.
+  5. Full SHA-256 (via Windows CNG through FFI for speed); files with equal full hashes form a duplicate group.
+  6. Hashes are stored with each file's size and modified time and reused on later runs if both are unchanged.
+- **Keep-rule engine** — chooses the kept copy per group (D14) and enforces the at-least-one-copy invariant on every selection change.
 - **Cache cleaner** — loads the curated cache catalog, measures each entry, detects running apps, deletes cache contents.
 - **Purge checker** — finds trash items older than 30 days; used by the scheduled task and on app open.
 
@@ -134,16 +151,21 @@ Stored at `%LOCALAPPDATA%\StorageCleaner\index.db`.
 | `cloud_synced` | True under a OneDrive root |
 | `state` | `indexed`, `moving`, `trashed`, `restoring`, `deleting`, `freeing`, `freed` |
 | `trashed_at` | Set when trashed |
+| `file_id` | NTFS file index (detects hard links) |
+| `sample_hash` | Duplicate pipeline step 4; valid only while `size_bytes` and `modified_at` match |
+| `full_hash` | SHA-256, same validity rule |
+| `hashed_at` | When hashes were computed |
 
 ### Other tables
 - **`folders`** — scanned folder path and last-modified time, to skip unchanged folders on rescan.
 - **`scan_runs`** — start, end, status (`running`, `complete`, `interrupted`), counts; drives resume and "incomplete" labeling.
 - **`exclusions`** — user-excluded folders.
+- **`duplicate_runs`** — start, end, status, bytes read, groups found; drives resume after cancel or crash.
 - **`cache_runs`** — when each cache entry was cleaned and how much was freed (for the "space freed" history).
 
-Indexes: `(state, modified_at)` for Old Files; `(state, trashed_at)` for the purge check; unique on `path`.
+Indexes: `(state, modified_at)` for Old Files; `(state, size_bytes)` for Large Files and duplicate candidates; `(size_bytes, full_hash)` for duplicate grouping; `(state, trashed_at)` for the purge check; unique on `path`.
 
-Settings (threshold, exclusions, enabled drives) are stored at `%APPDATA%\StorageCleaner\settings.json`.
+Settings (age threshold, large-file threshold, duplicate minimum size, exclusions, enabled drives) are stored at `%APPDATA%\StorageCleaner\settings.json`.
 
 ## 7. Trash design (uninstall-safe)
 
@@ -202,7 +224,9 @@ Exact paths are verified against current app versions during implementation and 
 6. **Restore** — mark `restoring` → recreate original folder if missing → rename back → on name conflict, user chooses "keep both" (suffix) or a different folder → update manifest → mark `indexed`.
 7. **Purge reminder** — daily task runs `--purge-check` → if items are past 30 days, one notification ("12 files (1.1 GB) ready to delete permanently") → click opens Trash with those preselected → strong confirmation → permanent delete. The same check runs whenever the app opens.
 8. **Delete now / Empty trash** — strong confirmation ("This can't be undone", red non-default button) → permanent delete → update manifest.
-9. **App cache** — measure catalog entries → ranked list → user selects → confirmation with per-app sizes → delete contents → show space freed.
+9. **Large files** — query index for `state = indexed` and size ≥ threshold, largest first. Files modified in the last 7 days unselected. Actions as in flows 4 and 5. Changing the threshold re-runs the query only.
+10. **Duplicates** — user taps "Find duplicates" → pipeline runs with progress (bytes read, groups found) → groups shown with keep-rule choices → user adjusts → confirmation → before each removal, re-check that the removed copy **and the kept copy** both still exist with unchanged size and modified time; if not, skip the whole group → move extras to trash (flow 4 steps). OneDrive extras follow the trash flow too, since the kept copy remains.
+11. **App cache** — measure catalog entries → ranked list → user selects → confirmation with per-app sizes → delete contents → show space freed.
 
 ## 11. Confirmation rules
 
@@ -213,6 +237,7 @@ Exact paths are verified against current app versions during implementation and 
 | Restore | None needed (non-destructive) |
 | Delete now / Empty trash / Purge | Strong warning, explicitly irreversible, red non-default button |
 | Clean app cache | Dialog listing each app and its size |
+| Remove duplicates | Dialog with groups, copies removed, space freed, and "one copy of each file is kept"; extras go to trash |
 | Scheduled task | Never deletes; notification only |
 | Uninstall | Uninstaller page shows trash contents are kept |
 
@@ -238,11 +263,19 @@ Exact paths are verified against current app versions during implementation and 
 | Scheduled task missing or disabled | Recreated on next app launch; purge check also runs on open |
 | Junctions, symlinks, reparse points | Never followed (scanner and cache cleaner) |
 | Unreadable folders | Skipped and counted in scan summary |
+| File changes while being hashed | Dropped from its group; group re-evaluated |
+| File can't be read during hashing (locked, access denied) | Excluded from duplicate results; counted in summary |
+| Kept copy missing or changed at removal time | Whole group skipped; reported |
+| Duplicate scan cancelled or interrupted | Completed hashes kept; next run resumes |
+| User deselects the kept copy | Not allowed; UI requires choosing another copy to keep first |
 
 ## 13. Testing strategy
 
-1. **Unit tests (Dart, in-memory filesystem)** — categorizer, age filtering, exclusions, Pictures default, OneDrive classification, trash state transitions and crash reconciliation, manifest write and rebuild, restore conflicts, long-path mirroring, cache catalog path resolution and containment checks.
+1. **Unit tests (Dart, in-memory filesystem)** — duplicate pipeline stages, keep-rule priority, hash reuse and invalidation, large-file query and recent-file default, categorizer, age filtering, exclusions, Pictures default, OneDrive classification, trash state transitions and crash reconciliation, manifest write and rebuild, restore conflicts, long-path mirroring, cache catalog path resolution and containment checks.
 2. **Safety tests (release blockers)**
+   - No duplicate selection or removal can ever remove every copy in a group, including when the kept copy disappears mid-operation.
+   - Online-only OneDrive files are never opened or hashed (no download triggered).
+   - Hard links are never reported as duplicates.
    - Permanent deletion reachable only through the confirmed delete paths (trash purge and cache clean); a test asserts no other code deletes.
    - Excluded folders, trash folders, system folders and `AppData` (outside catalog cache folders) are never scanned, moved or deleted.
    - Reparse points are never followed; a test plants a junction pointing at a protected folder and asserts nothing behind it is touched.
@@ -252,7 +285,7 @@ Exact paths are verified against current app versions during implementation and 
 4. **Failure drills (scripted)** — kill the app mid-move; delete `index.db` → trash rebuilt; **uninstall and reinstall → every trashed file present and restorable**; Controlled Folder Access enabled; USB drive removed mid-session.
 5. **OneDrive tests** — personal and work/school accounts; online-only skipped without triggering downloads; free up space verified; "Always keep on this device" respected; OneDrive not running.
 6. **Cache tests** — each catalog entry against a current install of that app: only cache folders removed, app still signed in afterward, running app skipped.
-7. **Performance** — 250,000-file fixture. Targets: first scan ≤ 60 s on a mid-range SSD laptop; rescans substantially faster; no UI freezes.
+7. **Performance** — 250,000-file fixture. Targets: first scan ≤ 60 s on a mid-range SSD laptop; rescans substantially faster; no UI freezes. Duplicate pass: bytes read reported; a repeat run on an unchanged disk re-reads nothing (hash reuse); cancel responds within 1 s.
 8. **Environment matrix** — Windows 10 22H2 and Windows 11; standard (non-admin) user; corporate-style policies (Controlled Folder Access, OneDrive Known Folder Move).
 
 ## 14. Success criteria
@@ -260,6 +293,7 @@ Exact paths are verified against current app versions during implementation and 
 - A user can scan, review and reclaim space in under 2 minutes on first use.
 - Zero files permanently deleted without explicit confirmation (enforced by safety tests).
 - Every trashed file is restorable after a crash, an index loss, or an uninstall and reinstall (enforced by failure drills).
+- The duplicate finder never removes the last copy of any file (enforced by safety tests).
 - Cache cleaning never signs the user out of any catalog app (enforced by cache tests).
 - Installs and runs fully without admin rights.
 
@@ -273,6 +307,8 @@ Exact paths are verified against current app versions during implementation and 
 | OneDrive "Free up space" behaves differently across versions or for work accounts | Verify attributes after the action; report failures; test personal and work accounts |
 | Last-modified time flags files the user still opens | Review step, Pictures unselected by default, 30-day trash, restore |
 | Trash folders left behind after uninstall use space | Uninstaller page explains and offers to open them; README in folder; "Empty all trash" in Settings |
+| Duplicate scan slow on large disks | Only size-matched candidates are read; sample hash before full hash; hashes cached; cancellable and resumable; minimum size setting |
+| Two copies treated as duplicates when the user wants both (e.g. same file in two projects) | Review step, user can change the kept copy or deselect, trash makes removal reversible |
 | Corporate IT blocks unknown installers | Per-user installer with no admin; packaging suitable for Intune deployment (decided in Delivery phase) |
 
 ## 16. Delivery requirements (detailed in Phase 6)
@@ -286,5 +322,5 @@ Exact paths are verified against current app versions during implementation and 
 
 - macOS, then Android (design in superseded spec), then iOS photos-only.
 - Admin-level system cleanup, or a shortcut to Windows Storage Sense.
-- Per-category thresholds; duplicate and large-file finders.
+- Per-category thresholds; similar-photo detection.
 - Optional Recycle Bin mode.

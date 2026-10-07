@@ -1,7 +1,7 @@
 # Project Status — storage-cleaner
 
 **Feature slug:** `storage-cleaner`
-**Current phase:** Phase 0 — Brainstorming: adding duplicate finder + large-file finder to v1 (2026-10-07)
+**Current phase:** Phase 0 — Brainstorming: Windows spec updated with duplicate + large-file finders, awaiting user review
 **Phase 0:** Complete — spec approved 2026-10-06
 **Started:** 2026-10-06
 
@@ -46,11 +46,10 @@ User added to v1: duplicate file detection, large-file finder independent of age
 Decided:
 - Duplicates = identical content only. Pipeline: group by exact size -> partial sample hash -> full hash. Online-only OneDrive files never read. Similar-photo detection deferred.
 - Duplicate keep rule: preselect extras, user reviews. Keep priority: OneDrive copy > Documents/Pictures/Desktop/Videos over Downloads/temp-like > oldest. App always keeps >=1 copy per group (cannot select all). Removed duplicates go to 30-day trash.
-Open questions:
-- Large-file threshold
+- Large files: any age; user picker 100MB/250MB/500MB/1GB/2GB, default 500MB; instant re-query; OneDrive large files get Free up space; files modified in last 7 days shown but unselected.
 
 ## Next
-- Resolve open questions, update Windows spec, then user reviews `.10x/specs/2026-10-07-storage-cleaner-windows-design.md`
+- User reviews `.10x/specs/2026-10-07-storage-cleaner-windows-design.md`
 - On approval: resume Phase 1 (Strategy). Unanswered Phase 1 question: app purpose (public product / internal-showcase / client deliverable)
 
 ## Blockers

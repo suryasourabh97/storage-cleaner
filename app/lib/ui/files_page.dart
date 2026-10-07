@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 
 import '../services/app_controller.dart';
 import 'format.dart';
+import 'widgets/components.dart';
 import 'widgets/confirm_dialogs.dart';
 
 enum FilesKind { old, large }
 
-/// Old Files and Large Files screens (spec flows 3, 4, 9).
+/// Old files and Large files (spec flows 3, 4, 9).
 class FilesPage extends StatefulWidget {
   const FilesPage({super.key, required this.controller, required this.kind});
 
@@ -38,10 +39,9 @@ class _FilesPageState extends State<FilesPage> {
   bool _busy = false;
 
   AppController get c => widget.controller;
+  bool get _old => widget.kind == FilesKind.old;
 
-  String get _thresholdKey => widget.kind == FilesKind.old
-      ? c.settings.age.name
-      : c.settings.size.name;
+  String get _thresholdKey => _old ? c.settings.age.name : c.settings.size.name;
 
   @override
   void initState() {
@@ -63,17 +63,12 @@ class _FilesPageState extends State<FilesPage> {
   }
 
   void _onChanged() {
-    if (c.scanning) return; // reload once the scan is done
-    _reload(resetSelection: _thresholdKey != _loadedFor);
+    if (c.scanning || !mounted) return;
+    setState(() => _load(resetSelection: _thresholdKey != _loadedFor));
   }
 
-  void _reload({required bool resetSelection}) =>
-      setState(() => _load(resetSelection: resetSelection));
-
   void _load({required bool resetSelection}) {
-    final items = widget.kind == FilesKind.old
-        ? c.oldFilesList()
-        : c.largeFilesList();
+    final items = _old ? c.oldFilesList() : c.largeFilesList();
     _items = items;
     final ids = {for (final i in items) i.record.id};
     if (resetSelection) {
@@ -94,9 +89,7 @@ class _FilesPageState extends State<FilesPage> {
   bool _selectable(Candidate i) => i.action == CandidateAction.trash;
 
   List<_Row> _rows() {
-    if (widget.kind == FilesKind.large) {
-      return [for (final i in _items) _FileRow(i)];
-    }
+    if (!_old) return [for (final i in _items) _FileRow(i)];
     final groups = <Category, List<Candidate>>{};
     for (final i in _items) {
       groups.putIfAbsent(i.record.category, () => []).add(i);
@@ -137,78 +130,86 @@ class _FilesPageState extends State<FilesPage> {
   @override
   Widget build(BuildContext context) {
     final rows = _rows();
-    final title = widget.kind == FilesKind.old ? 'Old files' : 'Large files';
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: widget.kind == FilesKind.old
-                ? _ThresholdPicker<AgeThreshold>(
-                    label: 'Not modified for',
-                    value: c.settings.age,
-                    values: AgeThreshold.values,
-                    labelOf: ageLabel,
-                    onChanged: c.setAge,
-                  )
-                : _ThresholdPicker<SizeThreshold>(
-                    label: 'At least',
-                    value: c.settings.size,
-                    values: SizeThreshold.values,
-                    labelOf: sizeLabel,
-                    onChanged: c.setSize,
-                  ),
+    final total = _bytes(_items);
+    final header = PageHeader(
+      title: _old ? 'Old files' : 'Large files',
+      subtitle: c.latestRun == null
+          ? null
+          : _items.isEmpty
+              ? null
+              : '${plural(_items.length, 'file')}, ${formatBytes(total)} in all. '
+                  '${_old ? 'Pictures start unselected.' : 'Files changed this week start unselected.'}',
+      trailing: [
+        if (_old)
+          InlineDropdown<AgeThreshold>(
+            label: 'Not modified for',
+            value: c.settings.age,
+            values: AgeThreshold.values,
+            labelOf: ageLabel,
+            onChanged: c.setAge,
+          )
+        else
+          InlineDropdown<SizeThreshold>(
+            label: 'At least',
+            value: c.settings.size,
+            values: SizeThreshold.values,
+            labelOf: sizeLabel,
+            onChanged: c.setSize,
           ),
-        ],
+      ],
+    );
+
+    final Widget body;
+    if (c.latestRun == null) {
+      body = const EmptyMessage(
+        title: 'Nothing scanned yet',
+        body: 'Run a scan from Home to see your files here.',
+      );
+    } else if (rows.isEmpty) {
+      body = EmptyMessage(
+        title: _old ? 'No old files' : 'No large files',
+        body: _old
+            ? 'Nothing has gone unmodified for ${ageLabel(c.settings.age)}. '
+                'Try a shorter period.'
+            : 'No file is ${sizeLabel(c.settings.size)} or bigger. '
+                'Try a smaller size.',
+      );
+    } else {
+      body = ListView.builder(
+        padding: const EdgeInsets.only(bottom: 24),
+        itemCount: rows.length,
+        itemBuilder: (context, i) => switch (rows[i]) {
+          _Header h => _headerRow(h),
+          _FileRow f => _fileRow(f.c),
+        },
+      );
+    }
+
+    return Scaffold(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [header, const Divider(), Expanded(child: body)],
       ),
-      body: c.latestRun == null
-          ? const _EmptyState(
-              icon: Icons.search,
-              text: 'Run a scan from Home to find files.',
-            )
-          : rows.isEmpty
-              ? _EmptyState(
-                  icon: Icons.check_circle_outline,
-                  text: widget.kind == FilesKind.old
-                      ? 'No files older than ${ageLabel(c.settings.age)}.'
-                      : 'No files of ${sizeLabel(c.settings.size)} or more.',
-                )
-              : ListView.builder(
-                  itemCount: rows.length,
-                  itemBuilder: (context, i) => switch (rows[i]) {
-                    _Header h => _headerTile(h),
-                    _FileRow f => _fileTile(f.c),
-                  },
-                ),
       bottomNavigationBar: _selected.isEmpty
           ? null
-          : BottomAppBar(
-              child: Row(
-                children: [
-                  Text(
-                    '${plural(_selected.length, 'file')} selected · '
-                    '${formatBytes(_selectedBytes)}',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () => setState(_selected.clear),
-                    child: const Text('Clear selection'),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
-                    onPressed: _busy ? null : _moveSelected,
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Move to trash'),
-                  ),
-                ],
-              ),
+          : SelectionBar(
+              summary: '${plural(_selected.length, 'file')} selected, '
+                  '${formatBytes(_selectedBytes)}',
+              actions: [
+                BarTextButton(
+                  label: 'Clear selection',
+                  onPressed: () => setState(_selected.clear),
+                ),
+                ReclaimButton(
+                  label: 'Move to trash',
+                  onPressed: _busy ? null : _moveSelected,
+                ),
+              ],
             ),
     );
   }
 
-  Widget _headerTile(_Header h) {
+  Widget _headerRow(_Header h) {
     final selectable = h.items.where(_selectable).toList();
     final selectedCount =
         selectable.where((i) => _selected.contains(i.record.id)).length;
@@ -217,19 +218,12 @@ class _FilesPageState extends State<FilesPage> {
         : selectedCount == selectable.length
             ? true
             : null;
-    return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: CheckboxListTile(
+    return GroupHeading(
+      title: h.label,
+      detail: '${plural(h.items.length, 'file')}, ${formatBytes(_bytes(h.items))}',
+      checkbox: Checkbox(
         tristate: true,
         value: state,
-        controlAffinity: ListTileControlAffinity.leading,
-        title: Text(
-          h.label,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        secondary: Text(
-          '${plural(h.items.length, 'file')} · ${formatBytes(_bytes(h.items))}',
-        ),
         onChanged: selectable.isEmpty
             ? null
             : (_) => setState(() {
@@ -244,93 +238,34 @@ class _FilesPageState extends State<FilesPage> {
     );
   }
 
-  Widget _fileTile(Candidate i) {
+  Widget _fileRow(Candidate i) {
     final r = i.record;
-    final name = winPath.basename(r.path);
-    final folder = winPath.dirname(r.path);
     final selectable = _selectable(i);
-    final notes = <String>[
-      'Modified ${formatDate(r.modified)}',
-      if (r.isProtected) 'Picture — unselected by default',
-      if (r.pinned) 'Always kept on this device',
-      if (!selectable) 'OneDrive — "Free up space" coming in a later update',
-    ];
-    return CheckboxListTile(
-      value: _selected.contains(r.id),
-      controlAffinity: ListTileControlAffinity.leading,
+    final String? note;
+    if (!selectable) {
+      note = 'In OneDrive. Freeing local space is coming in a later update.';
+    } else if (r.isProtected) {
+      note = 'In Pictures, so not selected automatically.';
+    } else if (r.pinned) {
+      note = 'Set to always stay on this device.';
+    } else {
+      note = null;
+    }
+    return FileRow(
+      selected: _selected.contains(r.id),
       onChanged: selectable
           ? (v) => setState(() {
-                if (v == true) {
+                if (v) {
                   _selected.add(r.id);
                 } else {
                   _selected.remove(r.id);
                 }
               })
           : null,
-      title: Text(name, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        '$folder\n${notes.join(' · ')}',
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-      isThreeLine: true,
-      secondary: Text(formatBytes(r.size)),
-    );
-  }
-}
-
-class _ThresholdPicker<T> extends StatelessWidget {
-  const _ThresholdPicker({
-    required this.label,
-    required this.value,
-    required this.values,
-    required this.labelOf,
-    required this.onChanged,
-  });
-
-  final String label;
-  final T value;
-  final List<T> values;
-  final String Function(T) labelOf;
-  final void Function(T) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text('$label '),
-        DropdownButton<T>(
-          value: value,
-          underline: const SizedBox.shrink(),
-          items: [
-            for (final v in values)
-              DropdownMenuItem<T>(value: v, child: Text(labelOf(v))),
-          ],
-          onChanged: (v) {
-            if (v != null) onChanged(v);
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.icon, required this.text});
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 48, color: Theme.of(context).colorScheme.outline),
-          const SizedBox(height: 12),
-          Text(text, style: Theme.of(context).textTheme.titleMedium),
-        ],
-      ),
+      title: winPath.basename(r.path),
+      subtitle: '${winPath.dirname(r.path)}    modified ${formatDate(r.modified)}',
+      note: note,
+      size: formatBytes(r.size),
     );
   }
 }

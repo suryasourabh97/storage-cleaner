@@ -61,6 +61,8 @@ String skipReasonLabel(SkipReason r) => switch (r) {
       SkipReason.notConfirmed => 'not confirmed',
       SkipReason.volumeUnavailable => 'drive not connected',
       SkipReason.wrongState => 'not in the expected state',
+      SkipReason.keptCopyChanged =>
+        'kept copy changed or missing, so its group was left alone',
       SkipReason.ioError => 'Windows reported an error',
     };
 
@@ -77,3 +79,10 @@ String summarizeBatch(BatchResult r, String verb) {
   ];
   return '$done ${r.skippedCount} skipped: ${parts.join(', ')}.';
 }
+
+String minSizeLabel(DuplicateMinSize m) => switch (m) {
+      DuplicateMinSize.kb100 => '100 KB',
+      DuplicateMinSize.mb1 => '1 MB',
+      DuplicateMinSize.mb10 => '10 MB',
+      DuplicateMinSize.mb100 => '100 MB',
+    };

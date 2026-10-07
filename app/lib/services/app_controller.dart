@@ -18,18 +18,31 @@ final class Overview {
     required this.oldBytes,
     required this.largeCount,
     required this.largeBytes,
+    required this.duplicateGroups,
+    required this.duplicateBytes,
     required this.trashCount,
     required this.trashBytes,
     required this.purgeReady,
+    required this.reclaimableByDrive,
   });
 
   final int oldCount;
   final int oldBytes;
   final int largeCount;
   final int largeBytes;
+  final int duplicateGroups;
+  final int duplicateBytes;
   final int trashCount;
   final int trashBytes;
   final PurgeSummary purgeReady;
+
+  /// Space the user could get back per drive root (old, large and extra
+  /// duplicate copies, each file counted once; OneDrive files excluded
+  /// until "Free up space" exists).
+  final Map<String, int> reclaimableByDrive;
+
+  int get reclaimableTotal =>
+      reclaimableByDrive.values.fold(0, (s, v) => s + v);
 }
 
 /// Wires the engine to Windows and holds UI state.
@@ -154,7 +167,7 @@ final class AppController extends ChangeNotifier {
   ScanRun? get latestRun => db.latestScanRun();
 
   Future<void> scan() async {
-    if (scanning) return;
+    if (scanning || analyzing) return;
     _rebuildEngine();
     scanning = true;
     progress = null;
@@ -229,16 +242,113 @@ final class AppController extends ChangeNotifier {
     int sum(Iterable<Candidate> c) => c.fold(0, (s, x) => s + x.record.size);
     final old = oldFilesList();
     final large = largeFilesList();
+    final dups = duplicateGroupsList();
     final t = trashList();
+
+    final byId = <int, FileRecord>{};
+    for (final c in [...old, ...large]) {
+      if (c.action == CandidateAction.trash) byId[c.record.id] = c.record;
+    }
+    for (final g in dups) {
+      for (final m in g.members.skip(1)) {
+        byId[m.id] = m;
+      }
+    }
+    final byDrive = <String, int>{};
+    for (final r in byId.values) {
+      final d = driveRoot(r.path).toUpperCase();
+      byDrive[d] = (byDrive[d] ?? 0) + r.size;
+    }
+
     return Overview(
       oldCount: old.length,
       oldBytes: sum(old),
       largeCount: large.length,
       largeBytes: sum(large),
+      duplicateGroups: dups.length,
+      duplicateBytes: dups.fold(0, (s, g) => s + g.reclaimable),
       trashCount: t.length,
       trashBytes: t.fold(0, (s, x) => s + x.record.size),
       purgeReady: purge.check(),
+      reclaimableByDrive: byDrive,
     );
+  }
+
+  // ---------------------------------------------------------- duplicates
+
+  bool analyzing = false;
+  AnalysisProgress? analysisProgress;
+  AnalysisSummary? lastAnalysis;
+  String? analysisError;
+
+  (DateTime, RunStatus)? get latestAnalysis =>
+      db.latestAnalysis('duplicates');
+
+  List<DuplicateGroup> duplicateGroupsList() => duplicateGroups(
+        db,
+        minSize: settings.duplicateMin.bytes,
+        exclusions: db.exclusions(),
+        rules: KeepRules(folders),
+      );
+
+  Future<void> findDuplicates() async {
+    if (analyzing || scanning) return;
+    analyzing = true;
+    analysisProgress = null;
+    analysisError = null;
+    notifyListeners();
+
+    final flag = calloc<Int32>()..value = 0;
+    _cancelFlag = flag;
+    final port = ReceivePort();
+    try {
+      await Isolate.spawn<AnalysisJob>(
+        analysisWorker,
+        (
+          dbPath: dbPath,
+          minSize: settings.duplicateMin.bytes,
+          exclusions: db.exclusions(),
+          cancelFlagAddress: flag.address,
+          port: port.sendPort,
+        ),
+        onExit: port.sendPort,
+        onError: port.sendPort,
+      );
+      await for (final msg in port) {
+        if (msg is AnalysisProgress) {
+          analysisProgress = msg;
+          notifyListeners();
+        } else if (msg is AnalysisSummary) {
+          lastAnalysis = msg;
+        } else if (msg is ScanFailed) {
+          analysisError = msg.error;
+        } else if (msg is List) {
+          analysisError = '${msg.first}';
+        } else if (msg == null) {
+          break;
+        }
+      }
+    } catch (e) {
+      analysisError = '$e';
+    } finally {
+      port.close();
+      _cancelFlag = null;
+      calloc.free(flag);
+      analyzing = false;
+      notifyListeners();
+    }
+  }
+
+  BatchResult removeDuplicateCopies(List<DuplicateRemoval> removals) {
+    final r = removeDuplicates(removals, db: db, fs: fs, trash: trash);
+    notifyListeners();
+    return r;
+  }
+
+  void setDuplicateMin(DuplicateMinSize v) {
+    settings.duplicateMin = v;
+    settings.save(settingsPath);
+    notifyListeners();
   }
 
   // ------------------------------------------------------------- actions

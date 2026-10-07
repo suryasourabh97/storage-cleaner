@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import '../platform/windows/system_info.dart';
 import '../services/app_controller.dart';
 import 'format.dart';
+import 'theme.dart';
+import 'widgets/components.dart';
 import 'widgets/confirm_dialogs.dart';
 
-/// Trash screen (spec flows 6, 7, 8).
+/// Trash (spec flows 6, 7, 8).
 class TrashPage extends StatefulWidget {
   const TrashPage({super.key, required this.controller});
   final AppController controller;
@@ -41,8 +43,7 @@ class _TrashPageState extends State<TrashPage> {
     _consumePurgeRequest();
   }
 
-  /// Home's "ready to delete" banner opens the Trash with those items
-  /// preselected.
+  /// Home's notice opens the Trash with the 30-day items preselected.
   void _consumePurgeRequest() {
     if (!mounted || !c.purgeReviewRequested) return;
     c.purgeReviewRequested = false;
@@ -53,9 +54,6 @@ class _TrashPageState extends State<TrashPage> {
         ..addAll(c.purge.check().ids);
     });
   }
-
-  List<TrashItem> _visible(List<TrashItem> all) =>
-      _readyOnly ? [for (final i in all) if (i.purgeReady) i] : all;
 
   Future<void> _restoreSelected(List<TrashItem> items) async {
     var restored = 0;
@@ -73,8 +71,8 @@ class _TrashPageState extends State<TrashPage> {
           restored++;
         case RestoreFailed(:final reason):
           failures.add(
-            '${winPath.basename(item.record.originalPath ?? item.record.path)}: '
-            '${skipReasonLabel(reason)}',
+            '${winPath.basename(item.record.originalPath ?? item.record.path)} '
+            '(${skipReasonLabel(reason)})',
           );
         case RestoreConflict():
           break;
@@ -84,8 +82,9 @@ class _TrashPageState extends State<TrashPage> {
     setState(_selected.clear);
     final msg = StringBuffer('${plural(restored, 'file')} restored.');
     if (failures.isNotEmpty) {
-      msg.write(' Not restored: ${failures.take(3).join('; ')}');
+      msg.write(' Not restored: ${failures.take(3).join(', ')}');
       if (failures.length > 3) msg.write(' and ${failures.length - 3} more');
+      msg.write('.');
     }
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg.toString())));
@@ -95,17 +94,21 @@ class _TrashPageState extends State<TrashPage> {
     return showDialog<RestoreChoice>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('A file with this name already exists'),
-        content: Text(
-          '$original\n\nKeep both (the restored file gets a number added), '
-          'or restore into another folder?',
+        title: const Text('That name is taken'),
+        content: SizedBox(
+          width: 480,
+          child: Text(
+            'There is already a file at\n$original\n\n'
+            'Keep both (the restored file gets a number added), or restore it '
+            'into another folder.',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Skip'),
           ),
-          TextButton(
+          OutlinedButton(
             onPressed: () async {
               final dir = await getDirectoryPath(
                 confirmButtonText: 'Restore here',
@@ -113,7 +116,7 @@ class _TrashPageState extends State<TrashPage> {
               if (!context.mounted) return;
               Navigator.pop(context, dir == null ? null : RestoreInto(dir));
             },
-            child: const Text('Choose folder…'),
+            child: const Text('Choose folder'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, const KeepBoth()),
@@ -142,113 +145,121 @@ class _TrashPageState extends State<TrashPage> {
     if (!mounted) return;
     setState(_selected.clear);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(summarizeBatch(result, 'permanently deleted'))),
+      SnackBar(content: Text(summarizeBatch(result, 'deleted permanently'))),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final all = c.trashList();
-    final items = _visible(all);
+    final items =
+        _readyOnly ? [for (final i in all) if (i.purgeReady) i] : all;
     final ready = all.where((i) => i.purgeReady).length;
-    final chosen = [for (final i in items) if (_selected.contains(i.record.id)) i];
+    final total = all.fold<int>(0, (s, i) => s + i.record.size);
+    final chosen = [
+      for (final i in items)
+        if (_selected.contains(i.record.id)) i,
+    ];
     final chosenBytes = chosen.fold<int>(0, (s, i) => s + i.record.size);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Trash'),
-        actions: [
-          if (ready > 0)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text('Ready to delete ($ready)'),
-                selected: _readyOnly,
-                onSelected: (v) => setState(() => _readyOnly = v),
-              ),
-            ),
-          IconButton(
-            tooltip: 'Open trash folder',
-            icon: const Icon(Icons.folder_open),
-            onPressed: () => openInExplorer(
-              c.locator.trashRootFor(c.folders.userProfile),
-            ),
+    final header = PageHeader(
+      title: 'Trash',
+      subtitle: all.isEmpty
+          ? 'Files you remove wait here for at least 30 days. '
+              'They are deleted only when you confirm.'
+          : '${plural(all.length, 'file')}, ${formatBytes(total)}. '
+              'Files stay until you delete them; after 30 days they are '
+              'marked ready to delete.',
+      trailing: [
+        if (ready > 0)
+          FilterChip(
+            label: Text('Ready to delete ($ready)'),
+            selected: _readyOnly,
+            onSelected: (v) => setState(() => _readyOnly = v),
           ),
-          TextButton(
-            onPressed: all.isEmpty ? null : () => _deleteForever(all),
+        OutlinedButton.icon(
+          onPressed: () =>
+              openInExplorer(c.locator.trashRootFor(c.folders.userProfile)),
+          icon: const Icon(Icons.folder_open_outlined, size: 18),
+          label: const Text('Open folder'),
+        ),
+        if (all.isNotEmpty)
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(foregroundColor: t.brick),
+            onPressed: () => _deleteForever(all),
             child: const Text('Empty trash'),
           ),
-          const SizedBox(width: 8),
+      ],
+    );
+
+    return Scaffold(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          header,
+          const Divider(),
+          Expanded(
+            child: items.isEmpty
+                ? const EmptyMessage(
+                    title: 'Trash is empty',
+                    body: 'Files you move to the trash from the other screens '
+                        'appear here.',
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.only(top: 8, bottom: 24),
+                    itemCount: items.length,
+                    itemBuilder: (context, i) => _row(items[i]),
+                  ),
+          ),
         ],
       ),
-      body: items.isEmpty
-          ? Center(
-              child: Text(
-                'Trash is empty.',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            )
-          : ListView.builder(
-              itemCount: items.length,
-              itemBuilder: (context, i) => _tile(items[i]),
-            ),
       bottomNavigationBar: chosen.isEmpty
           ? null
-          : BottomAppBar(
-              child: Row(
-                children: [
-                  Text(
-                    '${plural(chosen.length, 'file')} selected · '
-                    '${formatBytes(chosenBytes)}',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const Spacer(),
-                  OutlinedButton.icon(
-                    onPressed: () => _deleteForever(chosen),
-                    icon: const Icon(Icons.delete_forever),
-                    label: const Text('Delete permanently'),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
-                    onPressed: () => _restoreSelected(chosen),
-                    icon: const Icon(Icons.restore),
-                    label: const Text('Restore'),
-                  ),
-                ],
-              ),
+          : SelectionBar(
+              summary: '${plural(chosen.length, 'file')} selected, '
+                  '${formatBytes(chosenBytes)}',
+              actions: [
+                TextButton(
+                  style: TextButton.styleFrom(foregroundColor: t.paper),
+                  onPressed: () => _deleteForever(chosen),
+                  child: const Text('Delete permanently'),
+                ),
+                ReclaimButton(
+                  label: 'Restore',
+                  icon: Icons.restore,
+                  onPressed: () => _restoreSelected(chosen),
+                ),
+              ],
             ),
     );
   }
 
-  Widget _tile(TrashItem item) {
+  Widget _row(TrashItem item) {
     final r = item.record;
     final original = r.originalPath ?? r.path;
     final status = !item.available
-        ? 'Drive not connected'
+        ? 'Its drive is not connected.'
         : item.purgeReady
-            ? 'Ready to delete'
-            : '${plural(item.daysLeft, 'day')} left';
-    return CheckboxListTile(
-      value: _selected.contains(r.id),
-      controlAffinity: ListTileControlAffinity.leading,
+            ? 'Ready to delete.'
+            : 'Ready to delete in ${plural(item.daysLeft, 'day')}.';
+    return FileRow(
+      selected: _selected.contains(r.id),
       onChanged: item.available
           ? (v) => setState(() {
-                if (v == true) {
+                if (v) {
                   _selected.add(r.id);
                 } else {
                   _selected.remove(r.id);
                 }
               })
           : null,
-      title: Text(winPath.basename(original), overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        'From ${winPath.dirname(original)}\n'
-        'Trashed ${r.trashedAt == null ? '' : formatDate(r.trashedAt!)} · $status',
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-      isThreeLine: true,
-      secondary: Text(formatBytes(r.size)),
+      title: winPath.basename(original),
+      subtitle: 'From ${winPath.dirname(original)}',
+      note: r.trashedAt == null
+          ? status
+          : 'Moved here ${formatDate(r.trashedAt!)}. $status',
+      size: formatBytes(r.size),
     );
   }
 }

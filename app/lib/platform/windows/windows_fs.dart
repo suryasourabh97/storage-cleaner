@@ -298,4 +298,52 @@ final class WindowsPlatformFs implements PlatformFs {
   @override
   void replaceFile(String source, String target) =>
       _moveEx(source, target, _moveReplaceExisting | _moveWriteThrough);
+
+  @override
+  Uint8List readRange(String path, int offset, int length) {
+    RandomAccessFile? f;
+    try {
+      f = File(path).openSync();
+      f.setPositionSync(offset);
+      return f.readSync(length);
+    } on FileSystemException catch (e) {
+      throw FsException(_code(e.osError?.errorCode ?? 0), path, e.message);
+    } finally {
+      f?.closeSync();
+    }
+  }
+
+  /// Opens the file for attributes only (no read access, all sharing) to
+  /// read its NTFS file index.
+  @override
+  int? fileIdOf(String path) {
+    const fileReadAttributes = 0x80;
+    const shareAll = 0x1 | 0x2 | 0x4;
+    const openExisting = 3;
+    const backupSemantics = 0x02000000;
+    const openReparsePoint = 0x00200000;
+    final p = _long(path).toNativeUtf16();
+    final info = calloc<BY_HANDLE_FILE_INFORMATION>();
+    try {
+      final h = CreateFile(
+        p,
+        fileReadAttributes,
+        shareAll,
+        nullptr,
+        openExisting,
+        backupSemantics | openReparsePoint,
+        NULL,
+      );
+      if (h == INVALID_HANDLE_VALUE) return null;
+      try {
+        if (GetFileInformationByHandle(h, info) == 0) return null;
+        return (info.ref.nFileIndexHigh << 32) | info.ref.nFileIndexLow;
+      } finally {
+        CloseHandle(h);
+      }
+    } finally {
+      free(p);
+      free(info);
+    }
+  }
 }

@@ -11,11 +11,13 @@ final class AppSettings {
     this.age = AgeThreshold.defaultValue,
     this.size = SizeThreshold.defaultValue,
     this.scanRemovableDrives = false,
+    this.duplicateMin = DuplicateMinSize.defaultValue,
   });
 
   AgeThreshold age;
   SizeThreshold size;
   bool scanRemovableDrives;
+  DuplicateMinSize duplicateMin;
 
   static AppSettings load(String path) {
     try {
@@ -31,6 +33,10 @@ final class AppSettings {
           orElse: () => SizeThreshold.defaultValue,
         ),
         scanRemovableDrives: json['scanRemovableDrives'] == true,
+        duplicateMin: DuplicateMinSize.values.firstWhere(
+          (d) => d.name == json['duplicateMin'],
+          orElse: () => DuplicateMinSize.defaultValue,
+        ),
       );
     } on Object {
       return AppSettings();
@@ -45,6 +51,7 @@ final class AppSettings {
         'age': age.name,
         'size': size.name,
         'scanRemovableDrives': scanRemovableDrives,
+        'duplicateMin': duplicateMin.name,
       }));
   }
 }

@@ -46,3 +46,36 @@ void scanWorker(ScanJob job) {
     db?.close();
   }
 }
+
+/// Everything the background duplicate analysis needs.
+typedef AnalysisJob = ({
+  String dbPath,
+  int minSize,
+  List<String> exclusions,
+  int cancelFlagAddress,
+  SendPort port,
+});
+
+/// Isolate entry point for the duplicate finder.
+void analysisWorker(AnalysisJob job) {
+  IndexDb? db;
+  try {
+    db = IndexDb.open(job.dbPath);
+    final flag = Pointer<Int32>.fromAddress(job.cancelFlagAddress);
+    final summary = DuplicateFinder(
+      fs: WindowsPlatformFs(),
+      db: db,
+      clock: const SystemClock(),
+    ).run(
+      minSize: job.minSize,
+      exclusions: job.exclusions,
+      cancel: CancelToken(() => flag.value != 0),
+      onProgress: job.port.send,
+    );
+    job.port.send(summary);
+  } catch (e, st) {
+    job.port.send(ScanFailed('$e', '$st'));
+  } finally {
+    db?.close();
+  }
+}

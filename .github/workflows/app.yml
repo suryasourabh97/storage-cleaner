@@ -34,9 +34,12 @@ jobs:
           flutter analyze --no-fatal-infos > analyze.txt 2>&1
           code=$?
           cat analyze.txt
-          grep -E "^\s*(error|warning|info) •" analyze.txt | head -40 | while IFS= read -r l; do
-            lvl=$(echo "$l" | sed -E 's/^\s*(error|warning|info).*/\1/')
-            [ "$lvl" = info ] && lvl=notice
+          grep "•" analyze.txt | head -60 | while IFS= read -r l; do
+            case "$l" in
+              *error*) lvl=error ;;
+              *warning*) lvl=warning ;;
+              *) lvl=notice ;;
+            esac
             echo "::${lvl} title=flutter analyze::${l}"
           done
           exit $code

@@ -1,9 +1,13 @@
+import 'package:cleaner_core/cleaner_core.dart';
 import 'package:flutter/material.dart';
 
 import 'services/app_controller.dart';
+import 'ui/duplicates_page.dart';
 import 'ui/files_page.dart';
+import 'ui/format.dart';
 import 'ui/home_page.dart';
 import 'ui/settings_page.dart';
+import 'ui/theme.dart';
 import 'ui/trash_page.dart';
 
 void main() {
@@ -30,31 +34,34 @@ class StorageCleanerApp extends StatelessWidget {
     return MaterialApp(
       title: 'Storage Cleaner',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF00796B),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorSchemeSeed: const Color(0xFF00796B),
-        brightness: Brightness.dark,
-        useMaterial3: true,
-      ),
+      theme: buildTheme(Brightness.light),
+      darkTheme: buildTheme(Brightness.dark),
       home: c == null
           ? Scaffold(
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Text(
-                    'Storage Cleaner could not start:\n\n$startupError',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
+              body: EmptyStartup(error: '$startupError'),
             )
           : AppShell(controller: c),
     );
   }
 }
+
+class EmptyStartup extends StatelessWidget {
+  const EmptyStartup({super.key, required this.error});
+  final String error;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            'Storage Cleaner could not open its data folder.\n\n$error',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+}
+
+enum _Section { home, old, large, duplicates, trash, settings }
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.controller});
@@ -65,65 +72,186 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  int _index = 0;
+  _Section _section = _Section.home;
 
-  void _go(int i) => setState(() => _index = i);
+  void _go(_Section s) => setState(() => _section = s);
 
   @override
   Widget build(BuildContext context) {
     final c = widget.controller;
-    final pages = [
-      HomePage(
-        controller: c,
-        onOpenOld: () => _go(1),
-        onOpenLarge: () => _go(2),
-        onOpenTrash: () => _go(3),
-      ),
-      FilesPage(key: const ValueKey('old'), controller: c, kind: FilesKind.old),
-      FilesPage(
-        key: const ValueKey('large'),
-        controller: c,
-        kind: FilesKind.large,
-      ),
-      TrashPage(controller: c),
-      SettingsPage(controller: c),
-    ];
+    final page = switch (_section) {
+      _Section.home => HomePage(
+          controller: c,
+          onOpenOld: () => _go(_Section.old),
+          onOpenLarge: () => _go(_Section.large),
+          onOpenDuplicates: () => _go(_Section.duplicates),
+          onOpenTrash: () => _go(_Section.trash),
+        ),
+      _Section.old => FilesPage(
+          key: const ValueKey('old'),
+          controller: c,
+          kind: FilesKind.old,
+        ),
+      _Section.large => FilesPage(
+          key: const ValueKey('large'),
+          controller: c,
+          kind: FilesKind.large,
+        ),
+      _Section.duplicates => DuplicatesPage(controller: c),
+      _Section.trash => TrashPage(controller: c),
+      _Section.settings => SettingsPage(controller: c),
+    };
     return Scaffold(
       body: Row(
         children: [
-          NavigationRail(
-            selectedIndex: _index,
-            onDestinationSelected: _go,
-            labelType: NavigationRailLabelType.all,
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
-                label: Text('Home'),
+          _Sidebar(controller: c, current: _section, onSelect: _go),
+          Expanded(child: page),
+        ],
+      ),
+    );
+  }
+}
+
+class _Sidebar extends StatelessWidget {
+  const _Sidebar({
+    required this.controller,
+    required this.current,
+    required this.onSelect,
+  });
+
+  final AppController controller;
+  final _Section current;
+  final ValueChanged<_Section> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final text = Theme.of(context).textTheme;
+    const items = [
+      (_Section.home, Icons.space_dashboard_outlined, 'Overview'),
+      (_Section.old, Icons.history, 'Old files'),
+      (_Section.large, Icons.straighten, 'Large files'),
+      (_Section.duplicates, Icons.difference_outlined, 'Duplicates'),
+      (_Section.trash, Icons.delete_outline, 'Trash'),
+      (_Section.settings, Icons.tune, 'Settings'),
+    ];
+    return Container(
+      width: 228,
+      color: t.sidebar,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 28, 16, 24),
+              child: Text('Storage Cleaner', style: text.headlineSmall),
+            ),
+            for (final (section, icon, label) in items)
+              _NavItem(
+                icon: icon,
+                label: label,
+                selected: current == section,
+                onTap: () => onSelect(section),
               ),
-              NavigationRailDestination(
-                icon: Icon(Icons.history),
-                label: Text('Old files'),
+            const Spacer(),
+            ListenableBuilder(
+              listenable: controller,
+              builder: (context, _) => _SidebarFooter(controller: controller),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          height: 42,
+          padding: const EdgeInsets.only(left: 21, right: 16),
+          decoration: BoxDecoration(
+            color: selected ? t.paper : null,
+            border: Border(
+              left: BorderSide(
+                color: selected ? t.amber : Colors.transparent,
+                width: 3,
               ),
-              NavigationRailDestination(
-                icon: Icon(Icons.sd_storage_outlined),
-                selectedIcon: Icon(Icons.sd_storage),
-                label: Text('Large files'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.delete_outline),
-                selectedIcon: Icon(Icons.delete),
-                label: Text('Trash'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
-                label: Text('Settings'),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: selected ? t.ink : t.muted),
+              const SizedBox(width: 14),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: selected ? t.ink : t.muted,
+                ),
               ),
             ],
           ),
-          const VerticalDivider(width: 1),
-          Expanded(child: pages[_index]),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shows background work wherever the user is.
+class _SidebarFooter extends StatelessWidget {
+  const _SidebarFooter({required this.controller});
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final t = context.tokens;
+    final style = TextStyle(color: t.muted, fontSize: 12);
+    String? line;
+    if (c.scanning) {
+      final p = c.progress;
+      line = p == null ? 'Scanning' : 'Scanning, ${plural(p.files, 'file')}';
+    } else if (c.analyzing) {
+      line = 'Looking for duplicates';
+    }
+    final run = c.latestRun;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 16, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (line != null) ...[
+            const LinearProgressIndicator(minHeight: 2),
+            const SizedBox(height: 6),
+            Text(line, style: style),
+          ] else if (run != null)
+            Text(
+              run.status == RunStatus.complete
+                  ? 'Scanned ${formatDate(run.endedAt ?? run.startedAt)}'
+                  : 'Last scan incomplete',
+              style: style,
+            ),
         ],
       ),
     );

@@ -1,3 +1,5 @@
-# senior-engineer — decisions index
+# Senior Engineer — decisions index
 
-_No decisions yet._
+| Slug | Description | Status |
+|------|-------------|--------|
+| storage-cleaner | M1 implementation approach | Planned |

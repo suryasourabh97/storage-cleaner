@@ -1,3 +1,5 @@
-# engineering-manager — decisions index
+# Engineering Manager — decisions index
 
-_No decisions yet._
+| Slug | Description | Status |
+|------|-------------|--------|
+| storage-cleaner | M1–M6 plan; M1 = core engine | Planned |

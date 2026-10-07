@@ -43,9 +43,18 @@ jobs:
 
       - name: Test (real Windows file system)
         run: |
-          set -o pipefail
-          flutter test --reporter github 2>&1 | tee test.txt
-          echo "::notice title=App test totals::$(grep -E 'tests? (passed|failed)|All tests|Some tests' test.txt | tail -1)"
+          set +e
+          flutter test --reporter expanded > test.txt 2>&1
+          code=$?
+          cat test.txt
+          echo "::notice title=App test totals::$(tail -1 test.txt)"
+          if [ "$code" != 0 ]; then
+            # Failure details as one annotation (raw logs may be unreadable).
+            details=$(grep -v '^\s*$' test.txt | grep -A25 -E '\[E\]|Error|Expected|Exception' | head -120 \
+              | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=Failing tests::${details}"
+          fi
+          exit $code
 
       - name: Build
         run: flutter build windows --release

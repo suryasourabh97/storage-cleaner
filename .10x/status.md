@@ -50,8 +50,9 @@ Decided:
 
 ## Scope addition 2 (2026-10-07)
 User added similar-photo detection to v1.
+Decided:
+- Similar = near-identical copies only (resized, re-compressed, format-converted, light edits). Strict fixed threshold. Burst/series shots and adjustable sensitivity deferred.
 Open questions:
-- What counts as similar (near-identical copies vs burst/series shots vs adjustable)
 - Which photo is kept / preselection
 
 ## Next

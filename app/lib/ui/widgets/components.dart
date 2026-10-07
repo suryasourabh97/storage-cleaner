@@ -2,6 +2,39 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
+/// Lets any page header offer "Back" without each page knowing about the
+/// app shell's history.
+class BackNavigation extends InheritedWidget {
+  const BackNavigation({super.key, required this.onBack, required super.child});
+
+  /// Null when there is nowhere to go back to.
+  final VoidCallback? onBack;
+
+  static VoidCallback? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<BackNavigation>()?.onBack;
+
+  @override
+  bool updateShouldNotify(BackNavigation old) => old.onBack != onBack;
+}
+
+/// Arrow button that goes to the previous screen.
+class BackArrow extends StatelessWidget {
+  const BackArrow({super.key, required this.onBack});
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+        tooltip: 'Back (Alt+Left)',
+        onPressed: onBack,
+        icon: const Icon(Icons.arrow_back),
+        style: IconButton.styleFrom(
+          foregroundColor: context.tokens.ink,
+          side: BorderSide(color: context.tokens.line),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
+      );
+}
+
 /// Page title, one line of explanation, and controls on the right.
 class PageHeader extends StatelessWidget {
   const PageHeader({
@@ -18,11 +51,19 @@ class PageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final onBack = BackNavigation.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(32, 28, 32, 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          if (onBack != null) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: BackArrow(onBack: onBack),
+            ),
+            const SizedBox(width: 16),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

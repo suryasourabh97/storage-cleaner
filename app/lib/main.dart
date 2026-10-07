@@ -1,5 +1,7 @@
 import 'package:cleaner_core/cleaner_core.dart';
+import 'package:flutter/gestures.dart' show kBackMouseButton;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'services/app_controller.dart';
 import 'ui/duplicates_page.dart';
@@ -9,6 +11,7 @@ import 'ui/home_page.dart';
 import 'ui/settings_page.dart';
 import 'ui/theme.dart';
 import 'ui/trash_page.dart';
+import 'ui/widgets/components.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,7 +77,22 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   _Section _section = _Section.home;
 
-  void _go(_Section s) => setState(() => _section = s);
+  /// Screens visited before the current one, most recent last.
+  final List<_Section> _history = [];
+
+  void _go(_Section s) {
+    if (s == _section) return;
+    setState(() {
+      _history.add(_section);
+      if (_history.length > 50) _history.removeAt(0);
+      _section = s;
+    });
+  }
+
+  void _back() {
+    if (_history.isEmpty) return;
+    setState(() => _section = _history.removeLast());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,12 +119,32 @@ class _AppShellState extends State<AppShell> {
       _Section.trash => TrashPage(controller: c),
       _Section.settings => SettingsPage(controller: c),
     };
-    return Scaffold(
-      body: Row(
-        children: [
-          _Sidebar(controller: c, current: _section, onSelect: _go),
-          Expanded(child: page),
-        ],
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true): _back,
+        const SingleActivator(LogicalKeyboardKey.browserBack): _back,
+      },
+      child: Focus(
+        autofocus: true,
+        child: Listener(
+          // The "back" side button on a mouse.
+          onPointerDown: (e) {
+            if (e.buttons & kBackMouseButton != 0) _back();
+          },
+          child: Scaffold(
+            body: Row(
+              children: [
+                _Sidebar(controller: c, current: _section, onSelect: _go),
+                Expanded(
+                  child: BackNavigation(
+                    onBack: _history.isEmpty ? null : _back,
+                    child: page,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

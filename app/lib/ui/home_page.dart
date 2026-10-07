@@ -5,6 +5,7 @@ import '../platform/windows/system_info.dart';
 import '../services/app_controller.dart';
 import 'format.dart';
 import 'theme.dart';
+import 'widgets/components.dart';
 import 'widgets/storage_bar.dart';
 
 /// Home: how much can be reclaimed, per drive, and where it is.
@@ -35,9 +36,17 @@ class HomePage extends StatelessWidget {
         final overview = busy || run == null ? null : c.overview();
         final text = Theme.of(context).textTheme;
         final t = context.tokens;
+        final onBack = BackNavigation.of(context);
         return ListView(
           padding: const EdgeInsets.fromLTRB(32, 32, 32, 40),
           children: [
+            if (onBack != null) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: BackArrow(onBack: onBack),
+              ),
+              const SizedBox(height: 16),
+            ],
             if (overview != null && !overview.purgeReady.isEmpty) ...[
               _PurgeNotice(
                 summary: overview.purgeReady,

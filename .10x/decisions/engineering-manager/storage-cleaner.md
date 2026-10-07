@@ -50,3 +50,13 @@
 | 2.5 | CI green, state files, deliver build | all |
 
 Verification loop: GitHub Actions (findings surfaced as annotations).
+
+## M4 task breakdown (2026-10-07)
+| # | Task |
+|---|------|
+| 4.1 | Back navigation (history, Alt+Left, mouse back button) — user request |
+| 4.2 | Core: `ImageDecoder` interface, `PerceptualHash` (pHash DCT, dHash, colour signature, Hamming), EXIF orientation parser |
+| 4.3 | Core: `SimilarPhotoFinder` (candidates, exact-dup collapse, fingerprint cache, bucketed matching, star grouping, edited flag), `similarPhotoGroups`, `removeSimilar` |
+| 4.4 | Core tests: synthetic labelled set (resized/noisy/brightness/crop/burst/unrelated), safety (no auto-selection in edited groups, ≥ 1 kept) |
+| 4.5 | App: Flutter-engine decoder, analysis wiring, Similar photos tab with previews, setting |
+| 4.6 | Windows CI calibration test on real encoded JPEG/PNG; screenshots |

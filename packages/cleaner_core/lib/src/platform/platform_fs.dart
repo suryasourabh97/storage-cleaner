@@ -61,4 +61,13 @@ abstract interface class PlatformFs {
 
   /// Atomically replaces [target] with [source] (used for manifest writes).
   void replaceFile(String source, String target);
+
+  /// Reads up to [length] bytes of a user file's contents starting at
+  /// [offset]. Used only by the duplicate finder, and never for online-only
+  /// cloud files (reading one would download it).
+  Uint8List readRange(String path, int offset, int length);
+
+  /// NTFS file index, equal for hard links to the same data; null if
+  /// unavailable. Opens the file for attributes only.
+  int? fileIdOf(String path);
 }

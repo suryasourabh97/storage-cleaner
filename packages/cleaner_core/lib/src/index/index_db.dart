@@ -21,6 +21,8 @@ final class FileRecord {
     this.pinned = false,
     this.trashedAt,
     this.fileId,
+    this.sampleHash,
+    this.fullHash,
   });
 
   final int id;
@@ -44,6 +46,10 @@ final class FileRecord {
   final ItemState state;
   final DateTime? trashedAt;
   final int? fileId;
+
+  /// Duplicate pipeline hashes; valid while size and modified time match.
+  final String? sampleHash;
+  final String? fullHash;
 }
 
 /// Values the scanner writes for each file it sees.
@@ -240,6 +246,10 @@ final class IndexDb {
     _db.execute(
       "UPDATE scan_runs SET status = 'interrupted' WHERE status = 'running'",
     );
+    _db.execute(
+      "UPDATE analysis_runs SET status = 'interrupted' "
+      "WHERE status = 'running'",
+    );
   }
 
   ScanRun? latestScanRun() {
@@ -278,7 +288,10 @@ final class IndexDb {
         cloud_synced = excluded.cloud_synced,
         online_only = excluded.online_only,
         pinned = excluded.pinned,
-        file_id = excluded.file_id,
+        file_id = CASE WHEN files.size_bytes = excluded.size_bytes
+          AND files.modified_at = excluded.modified_at
+          THEN COALESCE(excluded.file_id, files.file_id)
+          ELSE excluded.file_id END,
         seen_run = excluded.seen_run,
         sample_hash = CASE WHEN files.size_bytes = excluded.size_bytes
           AND files.modified_at = excluded.modified_at
@@ -521,6 +534,91 @@ final class IndexDb {
       state: ItemState.parse(r['state'] as String),
       trashedAt: trashed == null ? null : fromMillis(trashed),
       fileId: r['file_id'] as int?,
+      sampleHash: r['sample_hash'] as String?,
+      fullHash: r['full_hash'] as String?,
     );
+  }
+
+  // -------------------------------------------------------- duplicates
+
+  /// Local indexed files of at least [minSize] bytes whose size is shared
+  /// with at least one other such file. Online-only files are never
+  /// candidates (reading them would download them).
+  List<FileRecord> duplicateCandidates(int minSize) {
+    final rows = _db.select('''
+      SELECT * FROM files
+      WHERE state = 'indexed' AND online_only = 0 AND size_bytes >= ?
+        AND size_bytes IN (
+          SELECT size_bytes FROM files
+          WHERE state = 'indexed' AND online_only = 0 AND size_bytes >= ?
+          GROUP BY size_bytes HAVING COUNT(*) > 1)
+      ORDER BY size_bytes DESC, id
+    ''', [minSize, minSize]);
+    return [for (final r in rows) _record(r)];
+  }
+
+  /// Files whose full hash is shared with another file of the same size.
+  List<FileRecord> fullHashMatches(int minSize) {
+    final rows = _db.select('''
+      SELECT * FROM files
+      WHERE state = 'indexed' AND online_only = 0 AND full_hash IS NOT NULL
+        AND size_bytes >= ?
+        AND (size_bytes, full_hash) IN (
+          SELECT size_bytes, full_hash FROM files
+          WHERE state = 'indexed' AND online_only = 0
+            AND full_hash IS NOT NULL AND size_bytes >= ?
+          GROUP BY size_bytes, full_hash HAVING COUNT(*) > 1)
+      ORDER BY size_bytes DESC, full_hash, id
+    ''', [minSize, minSize]);
+    return [for (final r in rows) _record(r)];
+  }
+
+  void setFileId(int id, int? fileId) => _db.execute(
+        'UPDATE files SET file_id = ? WHERE id = ?',
+        [fileId, id],
+      );
+
+  void setSampleHash(int id, String hash) => _db.execute(
+        'UPDATE files SET sample_hash = ? WHERE id = ?',
+        [hash, id],
+      );
+
+  void setFullHash(int id, String hash, DateTime at) => _db.execute(
+        'UPDATE files SET full_hash = ?, hashed_at = ? WHERE id = ?',
+        [hash, toMillis(at), id],
+      );
+
+  int startAnalysisRun(String type, DateTime now) {
+    _db.execute(
+      'INSERT INTO analysis_runs(type, started_at, status) VALUES (?, ?, ?)',
+      [type, toMillis(now), RunStatus.running.name],
+    );
+    return _db.lastInsertRowId;
+  }
+
+  void finishAnalysisRun(
+    int id, {
+    required DateTime now,
+    required RunStatus status,
+    required int bytesRead,
+    required int groupsFound,
+  }) =>
+      _db.execute(
+        'UPDATE analysis_runs SET ended_at = ?, status = ?, bytes_read = ?, '
+        'groups_found = ? WHERE id = ?',
+        [toMillis(now), status.name, bytesRead, groupsFound, id],
+      );
+
+  /// When the last analysis of [type] ended, and how.
+  (DateTime, RunStatus)? latestAnalysis(String type) {
+    final rows = _db.select(
+      'SELECT * FROM analysis_runs WHERE type = ? ORDER BY id DESC LIMIT 1',
+      [type],
+    );
+    if (rows.isEmpty) return null;
+    final r = rows.first;
+    final at = (r['ended_at'] as int?) ?? (r['started_at'] as int);
+    final status = RunStatus.values.byName(r['status'] as String);
+    return (fromMillis(at), status);
   }
 }

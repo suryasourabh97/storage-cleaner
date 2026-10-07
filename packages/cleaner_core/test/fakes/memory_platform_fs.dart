@@ -54,6 +54,12 @@ final class MemoryPlatformFs implements PlatformFs {
   /// Every mutation call, for assertions.
   final List<String> mutationLog = [];
 
+  /// Every content read (path), for assertions.
+  final List<String> contentReads = [];
+
+  /// Total bytes returned by [readRange].
+  int bytesRead = 0;
+
   // ---------------------------------------------------------------- setup
 
   void addVolume(String root, int serial) {
@@ -266,6 +272,29 @@ final class MemoryPlatformFs implements PlatformFs {
     if (_nodes.containsKey(targetKey)) _removeNode(targetKey);
     _rename(source, target);
   }
+
+  @override
+  Uint8List readRange(String path, int offset, int length) {
+    final key = pathKey(path);
+    final n = _nodes[key];
+    if (n == null || n.isDir) throw FsException(FsErrorCode.notFound, path);
+    if (_locked.contains(key)) throw FsException(FsErrorCode.inUse, path);
+    if (_denied.contains(key)) {
+      throw FsException(FsErrorCode.accessDenied, path);
+    }
+    contentReads.add(normalizePath(path));
+    final end = (offset + length).clamp(0, n.size);
+    final start = offset.clamp(0, end);
+    final data = n.data;
+    final out = data == null
+        ? Uint8List(end - start)
+        : Uint8List.fromList(data.sublist(start, end));
+    bytesRead += out.length;
+    return out;
+  }
+
+  @override
+  int? fileIdOf(String path) => _nodes[pathKey(path)]?.fileId;
 
   // -------------------------------------------------------------- helpers
 

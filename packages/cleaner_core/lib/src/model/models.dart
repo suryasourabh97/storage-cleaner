@@ -108,6 +108,10 @@ enum SkipReason {
   notConfirmed,
   volumeUnavailable,
   wrongState,
+
+  /// Duplicate removal: the copy being kept is gone or changed, so the whole
+  /// group is skipped.
+  keptCopyChanged,
   ioError,
 }
 

@@ -4,6 +4,9 @@
 /// through [FileMutator] (ADR-006).
 library;
 
+export 'src/duplicates/duplicate_finder.dart';
+export 'src/duplicates/hasher.dart';
+export 'src/duplicates/keep_rules.dart';
 export 'src/index/index_db.dart';
 export 'src/model/models.dart';
 export 'src/model/path_key.dart';

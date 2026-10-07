@@ -64,6 +64,7 @@ Decided:
 - M3 (exact duplicates): **done 2026-10-07** — core: 76 tests (42 safety) incl. 16 duplicate tests; app: 20 tests; Duplicates screen. Build: run 37601823827.
 - Back navigation (2026-10-07): history with back arrow in page headers, Alt+Left and mouse back button.
 - M4 (similar photos): **done 2026-10-07** — core: 93 tests (59 safety); app: 21 tests incl. real-decoder calibration (copies 0–1 bits, filtered copy flagged by colour 19.4, crop not grouped at 10/9 bits, burst 32 bits, unrelated 26/21 bits; threshold 4 kept). Build: run 37618557736.
+- Photo scope update (user request): Pictures + every image-extension file; small images included in exact duplicates. Build run 37622758349.
 - Next: user hands-on test; then M5 (app cache cleaning + OneDrive Free up space).
 
 ## Blockers

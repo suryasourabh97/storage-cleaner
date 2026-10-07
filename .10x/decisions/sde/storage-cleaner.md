@@ -102,3 +102,10 @@
 ### Tech debt
 - Similar-photo pass shares the UI isolate; decoding is off-thread but hashing (~µs per photo) and DB writes are on it.
 - Screenshot step occasionally needs frame pumping for image previews; bounded to 8 minutes and non-blocking.
+
+## Photo comparison scope — 2026-10-07 (user request)
+- User asked to compare "Pictures and all files with image extensions". Implemented: `Categorizer.isImagePath` = any file with an image extension (`.jpg .jpeg .jpe .jfif .png .webp .bmp .gif .tif .tiff .heic .heif .avif`) anywhere in scanned locations, plus any file in Pictures that is not clearly video/audio/document/archive/installer.
+- Exact duplicates: image files qualify from 20 KB (`minImageBytes`) regardless of the general minimum (default 1 MB), so small screenshots and messaging copies are found.
+- Formats without an engine decoder (HEIC/HEIF, AVIF, TIFF, SVG, camera RAW) are reported as "could not be checked yet" rather than as unreadable.
+- Similar-photo subtitle shows how many photos were compared.
+- Verified: core 95 tests (61 safety), app 21 tests. Build run 37622758349.

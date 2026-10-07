@@ -58,8 +58,8 @@ Decided:
 - Similar keep rule: highest quality kept (pixels > file size > location > oldest), rest preselected; if a copy looks edited (crop/aspect change or color change) the group is flagged 'Edited versions' with nothing preselected. >=1 kept, extras to trash, side-by-side previews.
 
 ## Next
-- M1 (core engine): **code complete, not yet compiled or run.** Tasks 1.1–1.14 written; syntax verified with a Dart parser. Needs `dart analyze` + `dart test` on a machine with the Dart SDK.
-- Next: get a build loop (user's linked Windows PC or GitHub Actions), fix any analyzer/test failures, then M2 (Windows adapter + Flutter UI).
+- M1 (core engine): **verified 2026-10-07** — GitHub Actions: `dart analyze` clean, 58 tests passed (26 safety-tagged). Repo: github.com/suryasourabh97/storage-cleaner
+- Next: M2 — Windows adapter (Dart FFI) + Flutter UI for scan / old / large / trash / settings; add a windows-latest CI job building the app.
 
 ## Blockers
-- Build environment: cloud workspace cannot download Flutter/Dart SDK (storage.googleapis.com, pub.dev blocked). Asked user: link Windows laptop, or GitHub Actions Windows CI.
+- None. Build loop = GitHub Actions (raw logs not readable from the cloud workspace; findings are surfaced as annotations).

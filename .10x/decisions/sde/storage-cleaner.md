@@ -21,8 +21,7 @@
 | 1.14 tests | `test/` — 9 files; safety-tagged: guard/mutator, source rules, reconciler drills, purge |
 
 ### Verification status
-- **Syntax:** all 22 Dart files parse cleanly (tree-sitter Dart grammar).
-- **Not yet run:** `dart analyze` and `dart test`. The cloud workspace cannot download the Dart SDK. Must run on the user's machine or CI before M1 is marked verified.
+- **Verified in CI (GitHub Actions, ubuntu, Dart stable):** `dart analyze --fatal-infos` clean; **58 tests passed, 26 of them safety-tagged.** First run caught one unused import (fixed).
 
 ### Deviations from plan/spec
 1. **No folder-mtime skipping on rescan** (spec flow 2). On NTFS a folder's modified time does not change when a file inside it is edited, so skipping would miss size/date changes. Every folder is listed; unchanged rows are cheap upserts. Real speed-up path: NTFS USN change journal (future).

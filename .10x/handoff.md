@@ -2,7 +2,7 @@
 
 ## Current Handoff
 **From:** SDE (Phase 4, Milestone 1)
-**To:** SDE / QA — verify M1, then start M2
+**To:** SDE — start M2 (M1 verified in CI: 58 tests, analyzer clean)
 
 What was built: `.10x/decisions/sde/storage-cleaner.md`. Schema: `.10x/decisions/dba/storage-cleaner.md`.
 To verify: `cd packages/cleaner_core && dart pub get && dart analyze && dart test` (safety subset: `dart test -t safety`).

@@ -52,6 +52,15 @@ class SettingsPage extends StatelessWidget {
                   ),
                 ),
                 _SettingRow(
+                  label: 'Similar photos',
+                  hint: 'Also find smaller or re-saved copies of the same '
+                      'photo when checking for duplicates.',
+                  control: Switch(
+                    value: c.settings.similarPhotos,
+                    onChanged: c.setSimilarPhotos,
+                  ),
+                ),
+                _SettingRow(
                   label: 'A duplicate worth checking',
                   hint: 'Smaller files take long to compare and free little.',
                   control: InlineDropdown<DuplicateMinSize>(

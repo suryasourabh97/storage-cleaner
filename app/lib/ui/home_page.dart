@@ -136,9 +136,12 @@ class HomePage extends StatelessWidget {
                 title: 'Duplicates',
                 detail: c.latestAnalysis == null
                     ? 'Not checked yet'
-                    : 'Extra copies of identical files',
-                count: plural(overview.duplicateGroups, 'group'),
-                bytes: overview.duplicateBytes,
+                    : 'Identical files and smaller copies of photos',
+                count: plural(
+                  overview.duplicateGroups + overview.similarGroups,
+                  'group',
+                ),
+                bytes: overview.duplicateBytes + overview.similarBytes,
                 onTap: onOpenDuplicates,
               ),
               _LedgerRow(

@@ -53,6 +53,9 @@ jobs:
           code=$?
           cat test.txt
           echo "::notice title=App test totals::$(tail -1 test.txt)"
+          if [ -f calibration_report.txt ]; then
+            echo "::notice title=Similar-photo calibration::$(sed 's/%/%25/g' calibration_report.txt | awk '{printf "%s%%0A", $0}')"
+          fi
           if [ "$code" != 0 ]; then
             # Failure details as one annotation (raw logs may be unreadable).
             details=$(grep -v '^\s*$' test.txt | grep -A25 -E '\[E\]|Error|Expected|Exception' | head -120 \

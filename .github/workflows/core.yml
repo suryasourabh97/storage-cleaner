@@ -40,7 +40,14 @@ jobs:
           exit $code
       - name: Test
         run: |
-          set -o pipefail
-          dart test --reporter github 2>&1 | tee test.txt
-          echo "::notice title=Test totals::$(grep -E 'tests? (passed|failed)|All tests|Some tests' test.txt | tail -1)"
-          echo "::notice title=Safety tests::$(dart test -t safety --reporter github 2>&1 | tail -1)"
+          set +e
+          dart test --reporter expanded > test.txt 2>&1
+          code=$?
+          echo "::notice title=Test totals::$(tail -1 test.txt)"
+          echo "::notice title=Safety tests::$(dart test -t safety 2>&1 | tail -1)"
+          if [ "$code" != 0 ]; then
+            details=$(grep -v '^\s*$' test.txt | grep -B2 -A18 -E '\[E\]' | head -150 \
+              | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=Failing tests::${details}"
+          fi
+          exit $code

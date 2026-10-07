@@ -6,6 +6,7 @@ import 'package:cleaner_core/cleaner_core.dart';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 
+import '../platform/flutter_image_decoder.dart';
 import '../platform/windows/system_info.dart';
 import '../platform/windows/windows_fs.dart';
 import 'scan_worker.dart';
@@ -20,6 +21,8 @@ final class Overview {
     required this.largeBytes,
     required this.duplicateGroups,
     required this.duplicateBytes,
+    required this.similarGroups,
+    required this.similarBytes,
     required this.trashCount,
     required this.trashBytes,
     required this.purgeReady,
@@ -32,6 +35,10 @@ final class Overview {
   final int largeBytes;
   final int duplicateGroups;
   final int duplicateBytes;
+  final int similarGroups;
+
+  /// Copies preselected by default (edited groups excluded).
+  final int similarBytes;
   final int trashCount;
   final int trashBytes;
   final PurgeSummary purgeReady;
@@ -256,6 +263,7 @@ final class AppController extends ChangeNotifier {
     final old = oldFilesList();
     final large = largeFilesList();
     final dups = duplicateGroupsList();
+    final similar = similarGroupsList();
     final t = trashList();
 
     final byId = <int, FileRecord>{};
@@ -265,6 +273,13 @@ final class AppController extends ChangeNotifier {
     for (final g in dups) {
       for (final m in g.members.skip(1)) {
         byId[m.id] = m;
+      }
+    }
+    var similarBytes = 0;
+    for (final g in similar) {
+      for (final m in g.members.where((m) => g.defaultRemovals.contains(m.id))) {
+        byId[m.id] = m;
+        similarBytes += m.size;
       }
     }
     final byDrive = <String, int>{};
@@ -280,6 +295,8 @@ final class AppController extends ChangeNotifier {
       largeBytes: sum(large),
       duplicateGroups: dups.length,
       duplicateBytes: dups.fold(0, (s, g) => s + g.reclaimable),
+      similarGroups: similar.length,
+      similarBytes: similarBytes,
       trashCount: t.length,
       trashBytes: t.fold(0, (s, x) => s + x.record.size),
       purgeReady: purge.check(),
@@ -292,6 +309,7 @@ final class AppController extends ChangeNotifier {
   bool analyzing = false;
   AnalysisProgress? analysisProgress;
   AnalysisSummary? lastAnalysis;
+  SimilarSummary? lastSimilar;
   String? analysisError;
 
   (DateTime, RunStatus)? get latestAnalysis =>
@@ -341,6 +359,23 @@ final class AppController extends ChangeNotifier {
           break;
         }
       }
+      final cancelled = flag.value != 0;
+      if (settings.similarPhotos && !cancelled && analysisError == null) {
+        lastSimilar = await SimilarPhotoFinder(
+          fs: fs,
+          db: db,
+          decoder: const FlutterImageDecoder(),
+          clock: clock,
+        ).run(
+          exclusions: db.exclusions(),
+          cancel: CancelToken(() => flag.value != 0),
+          rules: KeepRules(folders),
+          onProgress: (p) {
+            analysisProgress = p;
+            notifyListeners();
+          },
+        );
+      }
     } catch (e) {
       analysisError = '$e';
     } finally {
@@ -350,6 +385,28 @@ final class AppController extends ChangeNotifier {
       analyzing = false;
       notifyListeners();
     }
+  }
+
+  (DateTime, RunStatus)? get latestSimilar => db.latestAnalysis('similar');
+
+  List<SimilarGroup> similarGroupsList() => settings.similarPhotos
+      ? similarPhotoGroups(
+          db,
+          exclusions: db.exclusions(),
+          rules: KeepRules(folders),
+        )
+      : const [];
+
+  BatchResult removeSimilarCopies(List<SimilarRemoval> removals) {
+    final r = removeSimilar(removals, db: db, fs: fs, trash: trash);
+    notifyListeners();
+    return r;
+  }
+
+  void setSimilarPhotos(bool v) {
+    settings.similarPhotos = v;
+    settings.save(settingsPath);
+    notifyListeners();
   }
 
   BatchResult removeDuplicateCopies(List<DuplicateRemoval> removals) {

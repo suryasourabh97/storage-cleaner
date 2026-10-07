@@ -6,12 +6,15 @@ library;
 // `ci-screenshots` branch so the design can be reviewed without a Windows PC.
 
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:cleaner_core/cleaner_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:storage_cleaner/main.dart';
+import 'package:storage_cleaner/platform/flutter_image_decoder.dart';
 import 'package:storage_cleaner/services/app_controller.dart';
 import 'package:storage_cleaner/ui/theme.dart';
 
@@ -71,6 +74,48 @@ void _write(String rel, {int size = 0, int seed = 0, int? ageDays}) {
   }
 }
 
+/// A photo-like picture with grain, so JPEGs have realistic sizes.
+img.Image _photo(int seed, int w, int h, {double tintR = 0}) {
+  final rnd = math.Random(seed);
+  final blobs = [
+    for (var k = 0; k < 7; k++)
+      [
+        rnd.nextDouble(), rnd.nextDouble(), 0.08 + rnd.nextDouble() * 0.15,
+        rnd.nextDouble() * 255, rnd.nextDouble() * 255, rnd.nextDouble() * 255,
+      ],
+  ];
+  final grain = math.Random(seed + 1000);
+  final out = img.Image(width: w, height: h);
+  for (var py = 0; py < h; py++) {
+    for (var px = 0; px < w; px++) {
+      final x = px / w, y = py / h;
+      var r = 40 + 120 * x, g = 60 + 100 * y, b = 90 + 60 * (1 - x);
+      for (final o in blobs) {
+        final d = math.sqrt((x - o[0]) * (x - o[0]) + (y - o[1]) * (y - o[1]));
+        final a = (1 - ((d - o[2]) / 0.03)).clamp(0.0, 1.0);
+        r = r * (1 - a) + o[3] * a;
+        g = g * (1 - a) + o[4] * a;
+        b = b * (1 - a) + o[5] * a;
+      }
+      final n = grain.nextInt(25) - 12;
+      out.setPixelRgb(
+        px,
+        py,
+        (r + tintR + n).clamp(0.0, 255.0).round(),
+        (g + n).clamp(0.0, 255.0).round(),
+        (b + n).clamp(0.0, 255.0).round(),
+      );
+    }
+  }
+  return out;
+}
+
+void _writePhoto(String rel, img.Image image, int quality, int ageDays) {
+  final f = File('$profile\\$rel')..parent.createSync(recursive: true);
+  f.writeAsBytesSync(img.encodeJpg(image, quality: quality));
+  f.setLastModifiedSync(DateTime.now().subtract(Duration(days: ageDays)));
+}
+
 void _buildDemoProfile() {
   final d = Directory(demoRoot);
   if (d.existsSync()) d.deleteSync(recursive: true);
@@ -91,6 +136,17 @@ void _buildDemoProfile() {
   _write(r'Pictures\Camera Roll\IMG_2042.jpg', size: 3 * mb, seed: 6, ageDays: 500);
   _write(r'Music\Podcasts\episode-112.mp3', size: 3 * mb, seed: 8, ageDays: 380);
   _write(r'Documents\notes.txt', size: 2000, seed: 9, ageDays: 3);
+
+  final beach = _photo(21, 1600, 1200);
+  _writePhoto(r'Pictures\Goa\IMG_3001.jpg', beach, 92, 400);
+  _writePhoto(r'Downloads\IMG_3001-WA0004.jpg',
+      img.copyResize(beach, width: 1024, interpolation: img.Interpolation.average),
+      75, 390);
+  final market = _photo(33, 1600, 1200);
+  _writePhoto(r'Pictures\Goa\IMG_3017.jpg', market, 92, 398);
+  _writePhoto(r'Pictures\Goa\IMG_3017 (edited).jpg',
+      _photo(33, 1600, 1200, tintR: 45), 90, 120);
+  _writePhoto(r'Pictures\Goa\IMG_3020.jpg', _photo(47, 1600, 1200), 92, 397);
 }
 
 Future<void> _shot(WidgetTester tester, String name) async {
@@ -153,6 +209,12 @@ void main() {
   }
 
   testWidgets('light theme screens', (tester) async {
+    await tester.runAsync(() => SimilarPhotoFinder(
+          fs: c.fs,
+          db: c.db,
+          decoder: const FlutterImageDecoder(),
+          clock: AppController.clock,
+        ).run());
     await pumpApp(tester, Brightness.light);
     await _shot(tester, '1_overview_light');
     await _open(tester, 'Old files');
@@ -161,6 +223,12 @@ void main() {
     await _shot(tester, '3_large_files_light');
     await _open(tester, 'Duplicates');
     await _shot(tester, '4_duplicates_light');
+    await tester.tap(find.textContaining('Similar photos ('));
+    await tester.pumpAndSettle();
+    // Let the photo previews decode.
+    await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 2)));
+    await tester.pump();
+    await _shot(tester, '4b_similar_photos_light');
     await _open(tester, 'Trash');
     await _shot(tester, '5_trash_light');
     await _open(tester, 'Settings');

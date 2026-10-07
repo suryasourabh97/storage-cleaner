@@ -12,12 +12,16 @@ final class AppSettings {
     this.size = SizeThreshold.defaultValue,
     this.scanRemovableDrives = false,
     this.duplicateMin = DuplicateMinSize.defaultValue,
+    this.similarPhotos = true,
   });
 
   AgeThreshold age;
   SizeThreshold size;
   bool scanRemovableDrives;
   DuplicateMinSize duplicateMin;
+
+  /// Also look for near-identical photo copies when checking duplicates.
+  bool similarPhotos;
 
   static AppSettings load(String path) {
     try {
@@ -37,6 +41,7 @@ final class AppSettings {
           (d) => d.name == json['duplicateMin'],
           orElse: () => DuplicateMinSize.defaultValue,
         ),
+        similarPhotos: json['similarPhotos'] != false,
       );
     } on Object {
       return AppSettings();
@@ -52,6 +57,7 @@ final class AppSettings {
         'size': size.name,
         'scanRemovableDrives': scanRemovableDrives,
         'duplicateMin': duplicateMin.name,
+        'similarPhotos': similarPhotos,
       }));
   }
 }

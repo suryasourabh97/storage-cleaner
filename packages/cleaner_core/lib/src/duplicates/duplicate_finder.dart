@@ -19,7 +19,7 @@ enum DuplicateMinSize {
   static const defaultValue = DuplicateMinSize.mb1;
 }
 
-enum AnalysisPhase { comparingSizes, sampling, hashing }
+enum AnalysisPhase { comparingSizes, sampling, hashing, fingerprinting }
 
 final class AnalysisProgress {
   const AnalysisProgress({

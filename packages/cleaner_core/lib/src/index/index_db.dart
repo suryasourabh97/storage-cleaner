@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:sqlite3/sqlite3.dart';
 
 import '../model/models.dart';
@@ -23,6 +25,11 @@ final class FileRecord {
     this.fileId,
     this.sampleHash,
     this.fullHash,
+    this.width,
+    this.height,
+    this.phash,
+    this.dhash,
+    this.colorSig,
   });
 
   final int id;
@@ -50,6 +57,14 @@ final class FileRecord {
   /// Duplicate pipeline hashes; valid while size and modified time match.
   final String? sampleHash;
   final String? fullHash;
+
+  /// Photo fingerprint (similar photos); valid while size and modified time
+  /// match. Width/height are set even for photos too small to compare.
+  final int? width;
+  final int? height;
+  final int? phash;
+  final int? dhash;
+  final Uint8List? colorSig;
 }
 
 /// Values the scanner writes for each file it sees.
@@ -305,6 +320,15 @@ final class IndexDb {
         dhash = CASE WHEN files.size_bytes = excluded.size_bytes
           AND files.modified_at = excluded.modified_at
           THEN files.dhash ELSE NULL END,
+        width = CASE WHEN files.size_bytes = excluded.size_bytes
+          AND files.modified_at = excluded.modified_at
+          THEN files.width ELSE NULL END,
+        height = CASE WHEN files.size_bytes = excluded.size_bytes
+          AND files.modified_at = excluded.modified_at
+          THEN files.height ELSE NULL END,
+        color_sig = CASE WHEN files.size_bytes = excluded.size_bytes
+          AND files.modified_at = excluded.modified_at
+          THEN files.color_sig ELSE NULL END,
         size_bytes = excluded.size_bytes,
         modified_at = excluded.modified_at
       WHERE files.state = 'indexed'
@@ -536,7 +560,50 @@ final class IndexDb {
       fileId: r['file_id'] as int?,
       sampleHash: r['sample_hash'] as String?,
       fullHash: r['full_hash'] as String?,
+      width: r['width'] as int?,
+      height: r['height'] as int?,
+      phash: r['phash'] as int?,
+      dhash: r['dhash'] as int?,
+      colorSig: r['color_sig'] as Uint8List?,
     );
+  }
+
+  // ------------------------------------------------------ similar photos
+
+  /// Local indexed files of at least [minSize] bytes (the caller filters by
+  /// extension). Online-only files are never candidates.
+  List<FileRecord> photoCandidates(int minSize) {
+    final rows = _db.select('''
+      SELECT * FROM files
+      WHERE state = 'indexed' AND online_only = 0 AND size_bytes >= ?
+        AND category IN ('pictures', 'downloads', 'documents', 'other')
+      ORDER BY id
+    ''', [minSize]);
+    return [for (final r in rows) _record(r)];
+  }
+
+  void setFingerprint(
+    int id, {
+    required int width,
+    required int height,
+    int? phash,
+    int? dhash,
+    Uint8List? colorSig,
+  }) =>
+      _db.execute(
+        'UPDATE files SET width = ?, height = ?, phash = ?, dhash = ?, '
+        'color_sig = ? WHERE id = ?',
+        [width, height, phash, dhash, colorSig, id],
+      );
+
+  /// Indexed local photos that have a fingerprint.
+  List<FileRecord> fingerprintedPhotos() {
+    final rows = _db.select('''
+      SELECT * FROM files
+      WHERE state = 'indexed' AND online_only = 0 AND phash IS NOT NULL
+      ORDER BY id
+    ''');
+    return [for (final r in rows) _record(r)];
   }
 
   // -------------------------------------------------------- duplicates

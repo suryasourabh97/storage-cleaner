@@ -33,8 +33,9 @@ Android app (v1) that finds files untouched for a long time and removes them to 
 
 ## Scope change (2026-10-07)
 User asked to update the application to clean unused files on laptops. Phase 1 paused (purpose question unanswered) and brainstorming reopened.
+Decided:
+- Laptop REPLACES Android: v1 is a laptop-only (desktop) cleaner. Android design kept in spec as possible later release.
 Open questions:
-- Laptop support replaces Android, or is added alongside it?
 - Which desktop OSes (Windows / macOS / Linux)?
 - Laptop-specific design: OS Recycle Bin/Trash vs own trash, app caches, last-access time availability
 

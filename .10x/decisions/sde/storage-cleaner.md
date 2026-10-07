@@ -83,3 +83,22 @@
 ### Tech debt
 - Duplicate removal and trash moves still run on the UI isolate.
 - Screenshot demo uses `C:\ScreenshotDemo` on the CI runner; not part of the product.
+
+## Back navigation + Milestone 4 (similar photos) — 2026-10-07
+
+### Built
+- Back navigation: `AppShell` keeps a history (max 50); `BackNavigation` inherited widget puts a back arrow in `PageHeader` (and on Overview); Alt+Left, Browser Back key and the mouse back button work.
+- Core `lib/src/similar/`: `ImageDecoder` interface + `DecodedImage` (64×64 gray, 4×4 RGB signature, oriented dimensions), `exifOrientation` parser, `perceptualHash` (separable DCT, 8×8 low frequencies, median), `differenceHash` (9×8), `hamming`, `colorDistance`; `SimilarPhotoFinder` (fingerprints cached in the index; changed files re-fingerprinted), `similarPhotoGroups` (exact-dup collapse, 8-bucket pHash index, star grouping by quality, edited flag by aspect > 1% or colour > 12), `removeSimilar` (refuses no-kept selections; skips group if kept photo changed or its fingerprint differs).
+- App: `FlutterImageDecoder` (ADR-007), similar pass runs after the duplicate isolate on the UI isolate (async), Duplicates screen tabs (Identical files / Similar photos) with preview cards, Settings toggle, Overview counts preselected similar copies.
+
+### Verification
+- Core 93 tests (59 safety); app 21 tests including a labelled set encoded/decoded for real on Windows (results above in status). Screenshots reviewed: both groups render with previews; edited group has nothing preselected.
+
+### Deviations
+- **Minimum photo size 20 KB instead of 100 KB (spec §5.2):** messaging-app copies — the main target — are often under 100 KB; icons are excluded by the 256 px minimum side.
+- Decoder: Flutter engine codecs instead of WIC (ADR-007); HEIC skipped and counted.
+- Changing which photo is kept does not auto-select the previous keeper (safer than duplicates' behaviour).
+
+### Tech debt
+- Similar-photo pass shares the UI isolate; decoding is off-thread but hashing (~µs per photo) and DB writes are on it.
+- Screenshot step occasionally needs frame pumping for image previews; bounded to 8 minutes and non-blocking.

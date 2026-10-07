@@ -115,7 +115,7 @@ All file access goes through an abstraction (`package:file` plus a small platfor
   5. Full SHA-256 (via Windows CNG through FFI for speed); files with equal full hashes form a duplicate group.
   6. Hashes are stored with each file's size and modified time and reused on later runs if both are unchanged.
 - **Similar-photo finder** — runs in the same "Analyze" pass after exact duplicates, in a background isolate, cancellable and resumable:
-  1. Candidates: local (not online-only) images of type JPEG, PNG, HEIC/HEIF, WebP, BMP, TIFF; at least 100 KB and 256 px on the shortest side; not excluded. HEIC files are skipped and reported if the Windows HEIF codec isn't installed.
+  1. Candidates: local (not online-only) images of type JPEG, PNG, HEIC/HEIF, WebP, BMP, GIF; at least 20 KB (amended 2026-10-07 from 100 KB so messaging-app copies are included) and 256 px on the shortest side; not excluded. HEIC files are skipped and reported if the Windows HEIF codec isn't installed.
   2. Exact-duplicate sets are collapsed to their kept copy first, so nothing is reported twice.
   3. Fingerprint each image: decode at reduced size through the Windows Imaging Component, apply EXIF orientation, convert to grayscale, compute a 64-bit perceptual hash (DCT) and a 64-bit difference hash. Also record width, height, aspect ratio and a small color signature.
   4. Match: both hashes within a strict Hamming distance (initial value 4 of 64 bits each; final value calibrated on the labelled test set in §13). Candidate pairs found with bucketed hash lookup, not all-pairs comparison.

@@ -62,7 +62,9 @@ Decided:
 - M2 (Windows app, first usable build): **built and tested 2026-10-07** — Windows CI: flutter analyze clean, 15 app tests passed (real NTFS: junctions, hidden/system, long paths, no-overwrite move, full scan→trash→restore cycle); release build uploaded as artifact `StorageCleaner-windows-x64` (run 37597428078). Core: 60 tests passed.
 - Redesign (2026-10-07): new visual system (ink/paper/amber, Segoe UI Variable, capacity bars with hatched reclaimable segment, ledger overview, sidebar). Verified by CI-rendered screenshots (branch `ci-screenshots`).
 - M3 (exact duplicates): **done 2026-10-07** — core: 76 tests (42 safety) incl. 16 duplicate tests; app: 20 tests; Duplicates screen. Build: run 37601823827.
-- Next: user hands-on test; then M4 (similar photos).
+- Back navigation (2026-10-07): history with back arrow in page headers, Alt+Left and mouse back button.
+- M4 (similar photos): **done 2026-10-07** — core: 93 tests (59 safety); app: 21 tests incl. real-decoder calibration (copies 0–1 bits, filtered copy flagged by colour 19.4, crop not grouped at 10/9 bits, burst 32 bits, unrelated 26/21 bits; threshold 4 kept). Build: run 37618557736.
+- Next: user hands-on test; then M5 (app cache cleaning + OneDrive Free up space).
 
 ## Blockers
 - None. Build loop = GitHub Actions (raw logs not readable from the cloud workspace; findings are surfaced as annotations).

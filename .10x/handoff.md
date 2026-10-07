@@ -1,13 +1,14 @@
 # Handoff
 
 ## Current Handoff
-**From:** SDE (Milestone 3 + redesign)
-**To:** QA (user hands-on test), then SDE (M4 similar photos)
+**From:** SDE (Milestone 4 + back navigation)
+**To:** QA (user hands-on test), then SDE (M5: app cache + OneDrive Free up space)
 
-Build: GitHub Actions run 37601823827, artifact `StorageCleaner-windows-x64`. Screenshots: branch `ci-screenshots`.
-Test focus: Duplicates on a real profile (time to analyze, groups, keep choice, removal), overview totals, dark mode, dropdowns.
+Build: GitHub Actions run 37618557736, artifact `StorageCleaner-windows-x64`. Screenshots: branch `ci-screenshots`.
+Test focus: Find duplicates on a real Pictures folder (time to fingerprint, groups, edited flag, HEIC count), back button / Alt+Left / mouse back.
 
 ## Handoff History
+- 2026-10-07 SDE M3 -> QA: M3 + redesign delivered.
 - 2026-10-07 SDE M2 -> QA: M2 build delivered.
 - 2026-10-07 SDE M1 -> SDE M2: core verified (58 tests).
 - 2026-10-07 Planning -> SDE: M1 tasks 1.1–1.14.

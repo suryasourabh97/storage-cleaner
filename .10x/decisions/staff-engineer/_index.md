@@ -1,3 +1,8 @@
-# staff-engineer — decisions index
+# Staff Engineer — decisions index
 
-_No decisions yet._
+| Slug | Description | Status |
+|------|-------------|--------|
+| storage-cleaner | Coding standards, safety enforcement tests, conventions | Design complete |
+
+## Cross-cutting principles
+- Enforce safety rules with tests that scan the source, not reviewer memory.

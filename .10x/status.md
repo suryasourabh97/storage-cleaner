@@ -1,8 +1,9 @@
 # Project Status — storage-cleaner
 
 **Feature slug:** `storage-cleaner`
-**Current phase:** Phase 2 — Design (Architect + Staff Engineer)
+**Current phase:** Phase 3 — Planning (EM + Senior Engineer)
 **Phase 0:** Complete — Windows spec approved 2026-10-07
+**Phase 2:** Complete — 2026-10-07, ADR-001..006
 **Phase 1:** Complete — 2026-10-07 (purpose of app unconfirmed; assumed product-quality build, revisit before Delivery)
 **Started:** 2026-10-06
 
@@ -56,7 +57,7 @@ Decided:
 - Similar keep rule: highest quality kept (pixels > file size > location > oldest), rest preselected; if a copy looks edited (crop/aspect change or color change) the group is flagged 'Edited versions' with nothing preselected. >=1 kept, extras to trash, side-by-side previews.
 
 ## Next
-- Phase 2: ADRs, architect + staff-engineer decisions
+- Phase 3: milestones and task breakdown
 
 ## Blockers
 - Build environment: cloud workspace cannot download Flutter/Dart SDK (storage.googleapis.com, pub.dev blocked). Asked user: link Windows laptop, or GitHub Actions Windows CI.

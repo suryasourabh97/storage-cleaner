@@ -45,8 +45,8 @@ Decided:
 User added to v1: duplicate file detection, large-file finder independent of age.
 Decided:
 - Duplicates = identical content only. Pipeline: group by exact size -> partial sample hash -> full hash. Online-only OneDrive files never read. Similar-photo detection deferred.
+- Duplicate keep rule: preselect extras, user reviews. Keep priority: OneDrive copy > Documents/Pictures/Desktop/Videos over Downloads/temp-like > oldest. App always keeps >=1 copy per group (cannot select all). Removed duplicates go to 30-day trash.
 Open questions:
-- Which copy is kept by default
 - Large-file threshold
 
 ## Next

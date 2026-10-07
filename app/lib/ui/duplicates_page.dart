@@ -246,6 +246,7 @@ class _DuplicatesPageState extends State<DuplicatesPage> {
     final t = context.tokens;
     return FileRow(
       selected: ch.removeIds.contains(m.id),
+      dimmed: false,
       onChanged: keeping
           ? null
           : (v) => setState(() {
@@ -264,37 +265,26 @@ class _DuplicatesPageState extends State<DuplicatesPage> {
       title: m.path,
       subtitle: 'Modified ${formatDate(m.modified)}'
           '${m.cloudSynced ? '. In OneDrive.' : ''}',
-      note: keeping ? 'Kept' : null,
-      size: keeping
-          ? ''
-          : ch.removeIds.contains(m.id)
-              ? formatBytes(m.size)
-              : '',
-    ).withKeepAction(
-      visible: !keeping,
-      onKeep: () => setState(() {
-        final previous = ch.keepId;
-        ch.keepId = m.id;
-        ch.removeIds
-          ..remove(m.id)
-          ..add(previous);
-      }),
-    );
-  }
-}
-
-extension on FileRow {
-  /// Adds a "Keep this one" action after the row.
-  Widget withKeepAction({required bool visible, required VoidCallback onKeep}) {
-    if (!visible) return this;
-    return Row(
-      children: [
-        Expanded(child: this),
-        Padding(
-          padding: const EdgeInsets.only(right: 24),
-          child: TextButton(onPressed: onKeep, child: const Text('Keep this one')),
-        ),
-      ],
+      size: formatBytes(m.size),
+      trailing: keeping
+          ? Text(
+              'Kept',
+              textAlign: TextAlign.end,
+              style: Theme.of(context).textTheme.labelLarge,
+            )
+          : Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => setState(() {
+                  final previous = ch.keepId;
+                  ch.keepId = m.id;
+                  ch.removeIds
+                    ..remove(m.id)
+                    ..add(previous);
+                }),
+                child: const Text('Keep this one'),
+              ),
+            ),
     );
   }
 }

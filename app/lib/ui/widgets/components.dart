@@ -178,6 +178,8 @@ class FileRow extends StatelessWidget {
     required this.size,
     this.note,
     this.leading,
+    this.trailing,
+    this.dimmed,
   });
 
   final bool selected;
@@ -188,11 +190,18 @@ class FileRow extends StatelessWidget {
   final String? note;
   final Widget? leading;
 
+  /// Shown after the size column.
+  final Widget? trailing;
+
+  /// Grey out the title; defaults to "not selectable".
+  final bool? dimmed;
+
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final text = Theme.of(context).textTheme;
     final enabled = onChanged != null;
+    final grey = dimmed ?? !enabled;
     return InkWell(
       onTap: enabled ? () => onChanged!(!selected) : null,
       child: Container(
@@ -223,7 +232,7 @@ class FileRow extends StatelessWidget {
                   Text(
                     title,
                     style: text.bodyLarge?.copyWith(
-                      color: enabled ? t.ink : t.muted,
+                      color: grey ? t.muted : t.ink,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -249,6 +258,10 @@ class FileRow extends StatelessWidget {
               width: 96,
               child: Text(size, style: sizeText(context), textAlign: TextAlign.end),
             ),
+            if (trailing != null) ...[
+              const SizedBox(width: 16),
+              SizedBox(width: 120, child: trailing),
+            ],
           ],
         ),
       ),
@@ -325,11 +338,11 @@ class InlineDropdown<T> extends StatelessWidget {
             value: value,
             underline: const SizedBox.shrink(),
             borderRadius: BorderRadius.circular(6),
-            style: TextStyle(
-              color: t.ink,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
+            // Start from the theme so the app font is inherited (a bare
+            // TextStyle here would fall back to the platform default).
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: t.ink,
+                ),
             items: [
               for (final v in values)
                 DropdownMenuItem<T>(value: v, child: Text(labelOf(v))),

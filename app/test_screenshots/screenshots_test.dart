@@ -225,19 +225,13 @@ void main() {
     await _shot(tester, '4_duplicates_light');
     await tester.tap(find.textContaining('Similar photos ('));
     await tester.pumpAndSettle();
-    // Decode the photo previews before capturing.
-    final ctx = tester.element(find.byType(Scaffold).last);
-    await tester.runAsync(() async {
-      for (final g in c.similarGroupsList()) {
-        for (final m in g.members) {
-          await precacheImage(
-            ResizeImage(FileImage(File(m.path)), width: 440),
-            ctx,
-          );
-        }
-      }
-    });
-    await tester.pump();
+    // Let the photo previews load: real time for the decoder, then frames.
+    for (var i = 0; i < 30; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pump();
+    }
     await _shot(tester, '4b_similar_photos_light');
     await _open(tester, 'Trash');
     await _shot(tester, '5_trash_light');

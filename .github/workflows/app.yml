@@ -82,6 +82,8 @@ jobs:
 
       - name: Render screenshots
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        timeout-minutes: 8
+        continue-on-error: true
         run: |
           flutter test test_screenshots --update-goldens
           mkdir -p "$RUNNER_TEMP/shots"
@@ -89,7 +91,8 @@ jobs:
           echo "::notice title=Screenshots::$(ls test_screenshots/screenshots | tr '\n' ' ')"
 
       - name: Publish screenshots to the ci-screenshots branch
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('app/test_screenshots/screenshots/*.png') != ''
+        continue-on-error: true
         working-directory: .
         run: |
           cd "$RUNNER_TEMP"

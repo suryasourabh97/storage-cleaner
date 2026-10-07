@@ -1,8 +1,9 @@
 # Project Status — storage-cleaner
 
 **Feature slug:** `storage-cleaner`
-**Current phase:** Phase 0 — Brainstorming: Windows spec updated with similar-photo detection, awaiting user review
-**Phase 0:** Complete — spec approved 2026-10-06
+**Current phase:** Phase 2 — Design (Architect + Staff Engineer)
+**Phase 0:** Complete — Windows spec approved 2026-10-07
+**Phase 1:** Complete — 2026-10-07 (purpose of app unconfirmed; assumed product-quality build, revisit before Delivery)
 **Started:** 2026-10-06
 
 ## Idea
@@ -55,8 +56,7 @@ Decided:
 - Similar keep rule: highest quality kept (pixels > file size > location > oldest), rest preselected; if a copy looks edited (crop/aspect change or color change) the group is flagged 'Edited versions' with nothing preselected. >=1 kept, extras to trash, side-by-side previews.
 
 ## Next
-- User reviews `.10x/specs/2026-10-07-storage-cleaner-windows-design.md`, then resume Phase 1 `.10x/specs/2026-10-07-storage-cleaner-windows-design.md`
-- On approval: resume Phase 1 (Strategy). Unanswered Phase 1 question: app purpose (public product / internal-showcase / client deliverable)
+- Phase 2: ADRs, architect + staff-engineer decisions
 
 ## Blockers
-None yet.
+- Build environment: cloud workspace cannot download Flutter/Dart SDK (storage.googleapis.com, pub.dev blocked). Asked user: link Windows laptop, or GitHub Actions Windows CI.

@@ -1,16 +1,14 @@
 # Handoff
 
 ## Current Handoff
-**From:** Brainstorming (all roles), reopened for scope change
-**To:** Strategy (CTO + Product Manager), after user approves revised spec
+**From:** CTO + Product Manager (Phase 1)
+**To:** Principal Architect + Staff Engineer (Phase 2)
 
-Spec: `.10x/specs/2026-10-07-storage-cleaner-windows-design.md` (awaiting review). Supersedes the Android spec.
-
-Summary for Phase 1:
-- v1 is a Windows 10/11 laptop app, Flutter desktop + Dart FFI (package:win32). No admin rights anywhere.
-- Review -> confirm -> own per-drive trash (uninstall-safe, README + manifest); OneDrive files get 'Free up space' instead of trash; user-level cache cleaning from a curated catalog, permanent after confirmation.
-- Daily per-user scheduled task only notifies; never deletes.
-- Strategic questions still open: app purpose (public / internal / client), competition (Windows Storage Sense, Disk Cleanup, CCleaner, BleachBit), distribution (Store vs signed installer vs Intune), code-signing cost.
+Read: `.10x/specs/2026-10-07-storage-cleaner-windows-design.md`, `.10x/decisions/cto/storage-cleaner.md`, `.10x/decisions/product-manager/storage-cleaner.md`.
+- Build verdict: build (differentiated by review-first + recoverable + uninstall-safe across 5 cleaning features).
+- Constraints: Windows 10 22H2/11 x64, standard user, no admin, no backend.
+- Design so Milestone 1 (scan, old/large, trash) is shippable alone.
 
 ## Handoff History
+- 2026-10-07 Brainstorming -> Strategy: Windows spec approved (incl. duplicates, large files, similar photos).
 - 2026-10-06 Brainstorming -> Strategy: Android spec approved; Phase 1 started, then paused for laptop scope change on 2026-10-07.

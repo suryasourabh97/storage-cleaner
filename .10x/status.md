@@ -1,7 +1,7 @@
 # Project Status — storage-cleaner
 
 **Feature slug:** `storage-cleaner`
-**Current phase:** Phase 0 — Brainstorming: adding similar-photo detection to v1 (2026-10-07)
+**Current phase:** Phase 0 — Brainstorming: Windows spec updated with similar-photo detection, awaiting user review
 **Phase 0:** Complete — spec approved 2026-10-06
 **Started:** 2026-10-06
 
@@ -52,11 +52,10 @@ Decided:
 User added similar-photo detection to v1.
 Decided:
 - Similar = near-identical copies only (resized, re-compressed, format-converted, light edits). Strict fixed threshold. Burst/series shots and adjustable sensitivity deferred.
-Open questions:
-- Which photo is kept / preselection
+- Similar keep rule: highest quality kept (pixels > file size > location > oldest), rest preselected; if a copy looks edited (crop/aspect change or color change) the group is flagged 'Edited versions' with nothing preselected. >=1 kept, extras to trash, side-by-side previews.
 
 ## Next
-- Resolve, update spec, then user reviews `.10x/specs/2026-10-07-storage-cleaner-windows-design.md`
+- User reviews `.10x/specs/2026-10-07-storage-cleaner-windows-design.md`, then resume Phase 1 `.10x/specs/2026-10-07-storage-cleaner-windows-design.md`
 - On approval: resume Phase 1 (Strategy). Unanswered Phase 1 question: app purpose (public product / internal-showcase / client deliverable)
 
 ## Blockers

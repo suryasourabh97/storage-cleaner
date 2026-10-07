@@ -34,6 +34,28 @@ const _errAlreadyExists = 183;
 const _moveReplaceExisting = 0x1;
 const _moveWriteThrough = 0x8;
 
+// Leaf bindings: no VM transition happens between these calls, so the
+// thread's last-error value survives until we read it. (With ordinary FFI
+// calls the Dart runtime may overwrite it, and GetLastError returns 0.)
+final _kernel32 = DynamicLibrary.open('kernel32.dll');
+final _findFirstFile = _kernel32.lookupFunction<
+    IntPtr Function(Pointer<Utf16>, Pointer<WIN32_FIND_DATA>),
+    int Function(Pointer<Utf16>, Pointer<WIN32_FIND_DATA>)>(
+  'FindFirstFileW',
+  isLeaf: true,
+);
+final _moveFileEx = _kernel32.lookupFunction<
+    Int32 Function(Pointer<Utf16>, Pointer<Utf16>, Uint32),
+    int Function(Pointer<Utf16>, Pointer<Utf16>, int)>(
+  'MoveFileExW',
+  isLeaf: true,
+);
+final _deleteFile = _kernel32.lookupFunction<Int32 Function(Pointer<Utf16>),
+    int Function(Pointer<Utf16>)>('DeleteFileW', isLeaf: true);
+final _getLastError = _kernel32
+    .lookupFunction<Uint32 Function(), int Function()>('GetLastError',
+        isLeaf: true);
+
 /// Converts a FILETIME (100 ns ticks since 1601-01-01 UTC) to UTC DateTime.
 DateTime fileTimeToDateTime(int high, int low) {
   final ticks = (high << 32) | low;
@@ -83,10 +105,13 @@ final class WindowsPlatformFs implements PlatformFs {
         _ => FsErrorCode.io,
       };
 
-  static FsException _error(String path, [int? err]) {
-    final e = err ?? GetLastError();
-    return FsException(_code(e), path, 'Win32 error $e');
-  }
+  static FsException _error(String path, int err) =>
+      FsException(_code(err), path, 'Win32 error $err');
+
+  /// Second opinion when Windows gave no usable error code.
+  static bool _missing(String path) =>
+      FileSystemEntity.typeSync(path, followLinks: false) ==
+      FileSystemEntityType.notFound;
 
   FsEntry _entry(String path, WIN32_FIND_DATA d, int serial) {
     final attributes = d.dwFileAttributes;
@@ -150,10 +175,11 @@ final class WindowsPlatformFs implements PlatformFs {
     final data = calloc<WIN32_FIND_DATA>();
     final p = _long(path).toNativeUtf16();
     try {
-      final h = FindFirstFile(p, data);
+      final h = _findFirstFile(p, data);
       if (h == INVALID_HANDLE_VALUE) {
-        final err = GetLastError();
+        final err = _getLastError();
         if (err == _errFileNotFound || err == _errPathNotFound) return null;
+        if (err == 0 && _missing(path)) return null;
         throw _error(path, err);
       }
       FindClose(h);
@@ -174,10 +200,12 @@ final class WindowsPlatformFs implements PlatformFs {
     final p = _long(pattern).toNativeUtf16();
     final out = <FsEntry>[];
     try {
-      final h = FindFirstFile(p, data);
+      final h = _findFirstFile(p, data);
       if (h == INVALID_HANDLE_VALUE) {
-        final err = GetLastError();
-        if (err == _errFileNotFound) return out; // empty
+        final err = _getLastError();
+        if (err == 0 && _missing(dirPath)) {
+          throw FsException(FsErrorCode.notFound, dirPath);
+        }
         throw _error(dirPath, err);
       }
       try {
@@ -200,7 +228,13 @@ final class WindowsPlatformFs implements PlatformFs {
     final a = _long(from).toNativeUtf16();
     final b = _long(to).toNativeUtf16();
     try {
-      if (MoveFileEx(a, b, flags) == 0) throw _error(from);
+      if (_moveFileEx(a, b, flags) == 0) {
+        final err = _getLastError();
+        if (err == 0 && _missing(from)) {
+          throw FsException(FsErrorCode.notFound, from);
+        }
+        throw _error(from, err);
+      }
     } finally {
       free(a);
       free(b);
@@ -215,7 +249,13 @@ final class WindowsPlatformFs implements PlatformFs {
   void delete(String path) {
     final p = _long(path).toNativeUtf16();
     try {
-      if (DeleteFile(p) == 0) throw _error(path);
+      if (_deleteFile(p) == 0) {
+        final err = _getLastError();
+        if (err == 0 && _missing(path)) {
+          throw FsException(FsErrorCode.notFound, path);
+        }
+        throw _error(path, err);
+      }
     } finally {
       free(p);
     }

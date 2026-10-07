@@ -32,8 +32,10 @@ const photoExtensions = {
   '.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif', '.heic', '.heif',
 };
 
-/// Smallest photo considered (spec §5.2).
-const minPhotoBytes = 100 * 1024;
+/// Smallest photo file considered. The spec said 100 KB, but messaging-app
+/// copies (the most common resized copy) are often 50–100 KB; icons are
+/// excluded by [minPhotoSide] instead.
+const minPhotoBytes = 20 * 1024;
 const minPhotoSide = 256;
 
 final class SimilarSummary {

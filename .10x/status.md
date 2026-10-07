@@ -38,8 +38,9 @@ Decided:
 - OS: Windows only for v1.
 - Trash: app's own 'StorageCleaner Trash' folder per drive (README + manifest, 30-day notify-and-confirm). Not the Windows Recycle Bin (size-limit permanent deletes, no bin on many USB/network drives, Storage Sense auto-empty bypasses confirmation).
 - Cache: current user account only, no admin. %TEMP% + curated list of known app cache folders (Chrome, Edge, Firefox, Teams, Slack, VS Code, Zoom, Spotify...). Cache folders only, never cookies/logins/history/settings. Skip running apps with 'close X' hint. Caches deleted permanently after confirmation dialog showing size per app (not trashed).
+- Scan scope: user profile folders + other fixed data drives. Never Windows, Program Files, ProgramData, AppData. Pictures shown but unselected by default. OneDrive: skip online-only placeholders; old locally-stored synced files get 'Free up space' (dehydrate to online-only, file stays in cloud) instead of trash. Non-synced files use trash flow.
 Open questions:
-- Windows scan scope incl. OneDrive-synced folders and system/AppData exclusions
+- Background purge-ready check mechanism on Windows
 
 ## Next
 - Resolve scope-change questions, revise spec, re-approve, then resume Phase 1

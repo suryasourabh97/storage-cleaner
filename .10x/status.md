@@ -60,7 +60,9 @@ Decided:
 ## Next
 - M1 (core engine): **verified 2026-10-07** — GitHub Actions: `dart analyze` clean, 58 tests passed (26 safety-tagged). Repo: github.com/suryasourabh97/storage-cleaner
 - M2 (Windows app, first usable build): **built and tested 2026-10-07** — Windows CI: flutter analyze clean, 15 app tests passed (real NTFS: junctions, hidden/system, long paths, no-overwrite move, full scan→trash→restore cycle); release build uploaded as artifact `StorageCleaner-windows-x64` (run 37597428078). Core: 60 tests passed.
-- Awaiting: user hands-on test of the M2 build. Next: M3 (exact duplicates).
+- Redesign (2026-10-07): new visual system (ink/paper/amber, Segoe UI Variable, capacity bars with hatched reclaimable segment, ledger overview, sidebar). Verified by CI-rendered screenshots (branch `ci-screenshots`).
+- M3 (exact duplicates): **done 2026-10-07** — core: 76 tests (42 safety) incl. 16 duplicate tests; app: 20 tests; Duplicates screen. Build: run 37601823827.
+- Next: user hands-on test; then M4 (similar photos).
 
 ## Blockers
 - None. Build loop = GitHub Actions (raw logs not readable from the cloud workspace; findings are surfaced as annotations).

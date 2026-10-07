@@ -1,14 +1,14 @@
 # Handoff
 
 ## Current Handoff
-**From:** SDE (Milestone 2)
-**To:** QA (user hands-on test) then SDE (M3 duplicates)
+**From:** SDE (Milestone 3 + redesign)
+**To:** QA (user hands-on test), then SDE (M4 similar photos)
 
-Build: GitHub Actions run 37597428078, artifact `StorageCleaner-windows-x64` (unzip, run `storage_cleaner.exe`).
-What was built and deviations: `.10x/decisions/sde/storage-cleaner.md` (M2 section).
-Test focus: scan of a real profile (time, unreadable folders), old/large lists, move to trash + restore, permanent delete confirmation, OneDrive folders listed but not selectable, Controlled Folder Access messages.
+Build: GitHub Actions run 37601823827, artifact `StorageCleaner-windows-x64`. Screenshots: branch `ci-screenshots`.
+Test focus: Duplicates on a real profile (time to analyze, groups, keep choice, removal), overview totals, dark mode, dropdowns.
 
 ## Handoff History
+- 2026-10-07 SDE M2 -> QA: M2 build delivered.
 - 2026-10-07 SDE M1 -> SDE M2: core verified (58 tests).
 - 2026-10-07 Planning -> SDE: M1 tasks 1.1–1.14.
 - 2026-10-07 Design -> Planning: ADR-001..006, core/app split.

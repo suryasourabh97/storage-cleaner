@@ -62,3 +62,24 @@
 ### Tech debt
 - File IDs not read during scan (needed in M3 for hard links).
 - No widget tests for screens yet (only logic + real-FS tests).
+
+## Milestone 3 (exact duplicates) + redesign — 2026-10-07
+
+### Built
+- Core `lib/src/duplicates/`: `ContentHasher` (sample = first/middle/last 64 KB + size; full = chunked SHA-256), `DuplicateFinder` (size → hard-link collapse via lazily fetched NTFS file IDs → sample → full; stat re-check before and after hashing; cancellable; hashes persisted so runs resume and repeat runs read nothing), `KeepRules` (OneDrive > Documents/Pictures/Desktop/Videos/Music > other > Downloads/temp-like; then oldest, shortest path), `duplicateGroups()` query, `removeDuplicates()` (refuses selections without a kept copy; skips the whole group if the kept copy is gone, changed or re-hashed differently).
+- `PlatformFs` gained `readRange` and `fileIdOf`; Windows: `RandomAccessFile` reads, `CreateFileW(FILE_READ_ATTRIBUTES)` + `GetFileInformationByHandle`.
+- Index: `duplicateCandidates`, `fullHashMatches`, hash setters, analysis runs; upsert keeps file IDs while size/mtime are unchanged.
+- App: background analysis isolate (shared cancel flag), Duplicates screen (keep/remove per group, "Keep this one"), duplicate min-size setting, overview counts duplicates in reclaimable space.
+- Redesign: `lib/ui/theme.dart` tokens + `ThemeExtension`, `widgets/components.dart`, `widgets/storage_bar.dart`, sidebar shell, all screens rebuilt; copy rewritten (no middle-dot meta strings).
+- Screenshot pipeline: `app/test_screenshots/` renders all screens on a demo profile with real Segoe UI fonts; CI pushes PNGs to branch `ci-screenshots` (artifact storage is unreachable from the cloud workspace; git is).
+
+### Verification
+- Core: 76 tests passed (42 safety) — first run. App: 20 tests passed (incl. component/theme widget tests in light and dark). Visual review of CI screenshots found and fixed: dropdown text not inheriting the app font; kept duplicate looked disabled.
+
+### Deviations
+- Full hashing uses `package:crypto` SHA-256 in Dart instead of Windows CNG (ADR-004 said CNG). Simpler and portable; revisit if hashing throughput is a problem in hands-on testing.
+- "Find duplicates" is a separate action (not automatic after scan), as specified.
+
+### Tech debt
+- Duplicate removal and trash moves still run on the UI isolate.
+- Screenshot demo uses `C:\ScreenshotDemo` on the CI runner; not part of the product.

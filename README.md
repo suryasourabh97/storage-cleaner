@@ -11,7 +11,7 @@ A Windows laptop app that safely frees disk space: old files, large files, dupli
 | Path | What |
 |------|------|
 | `packages/cleaner_core` | Pure Dart engine: scan, index, queries, trash, safety (Milestone 1) |
-| `app/` | Flutter Windows app (Milestone 2, not started) |
+| `app/` | Flutter Windows app |
 
 ## Running the core tests
 
@@ -27,3 +27,8 @@ dart test
 On Windows, `package:sqlite3` needs `sqlite3.dll` on the PATH or next to the test runner; download the precompiled DLL from sqlite.org if `dart test` reports it missing. On Ubuntu: `sudo apt-get install libsqlite3-dev`.
 
 Safety tests (release blockers) can be run alone with `dart test -t safety`.
+
+## Builds and screenshots
+
+- Every push to `main` builds the Windows app on GitHub Actions (workflow **app (Windows)**); download **StorageCleaner-windows-x64** from the run page and run `storage_cleaner.exe`.
+- The same workflow renders every screen on a demo profile and publishes the images to the [`ci-screenshots`](../../tree/ci-screenshots) branch.

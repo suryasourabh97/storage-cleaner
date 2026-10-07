@@ -22,3 +22,10 @@
 ## Testing conventions
 - `test/fakes/memory_platform_fs.dart`: in-memory volumes, attributes, reparse points, locks, file IDs — the backbone of core tests.
 - Safety tests tagged `@Tags(['safety'])`; CI fails if any is skipped.
+
+## Visual system (2026-10-07)
+- Tokens live in `app/lib/ui/theme.dart` (`Tokens` ThemeExtension); screens never hard-code colors.
+- Amber is reserved for "reclaimable" (capacity-bar hatching, selected-row marker, primary reclaim action); brick red only for permanent deletion.
+- Sizes always use tabular figures. Large figures: Segoe UI Variable Display, light weight.
+- Copy: sentence case, plain verbs, no all-caps labels, no middle-dot meta strings.
+- Any UI change must be reviewed via the CI screenshots (`ci-screenshots` branch) before it ships.

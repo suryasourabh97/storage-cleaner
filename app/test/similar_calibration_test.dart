@@ -20,22 +20,23 @@ class _Blob {
 }
 
 /// Photo-like scene: gradient background with soft coloured shapes.
-class Scene {
-  Scene(int seed, {double shiftX = 0})
-      : blobs = () {
-          final rnd = math.Random(seed);
-          return [
-            for (var k = 0; k < 7; k++)
-              _Blob(
-                rnd.nextDouble() + shiftX,
-                rnd.nextDouble(),
-                0.08 + rnd.nextDouble() * 0.15,
-                rnd.nextDouble() * 255,
-                rnd.nextDouble() * 255,
-                rnd.nextDouble() * 255,
-              ),
-          ];
-        }();
+class _Scene {
+  _Scene(int seed, {double shiftX = 0}) : blobs = _makeBlobs(seed, shiftX);
+
+  static List<_Blob> _makeBlobs(int seed, double shiftX) {
+    final rnd = math.Random(seed);
+    return [
+      for (var k = 0; k < 7; k++)
+        _Blob(
+          rnd.nextDouble() + shiftX,
+          rnd.nextDouble(),
+          0.08 + rnd.nextDouble() * 0.15,
+          rnd.nextDouble() * 255,
+          rnd.nextDouble() * 255,
+          rnd.nextDouble() * 255,
+        ),
+    ];
+  }
 
   final List<_Blob> blobs;
 
@@ -93,7 +94,7 @@ void main() {
     }
 
     await tester.runAsync(() async {
-      final scene = Scene(11);
+      final scene = _Scene(11);
       final base = scene.render(1200, 900);
       await add('original.jpg q92', Uint8List.fromList(img.encodeJpg(base, quality: 92)));
       final small = img.copyResize(base, width: 480, interpolation: img.Interpolation.average);
@@ -111,11 +112,11 @@ void main() {
       await add('cropped 5% each side', Uint8List.fromList(img.encodeJpg(crop, quality: 90)));
       await add(
         'burst (shapes moved 18%)',
-        Uint8List.fromList(img.encodeJpg(Scene(11, shiftX: 0.18).render(1200, 900), quality: 92)),
+        Uint8List.fromList(img.encodeJpg(_Scene(11, shiftX: 0.18).render(1200, 900), quality: 92)),
       );
       await add(
         'unrelated photo',
-        Uint8List.fromList(img.encodeJpg(Scene(99).render(1200, 900), quality: 92)),
+        Uint8List.fromList(img.encodeJpg(_Scene(99).render(1200, 900), quality: 92)),
       );
     });
 

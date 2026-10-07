@@ -35,9 +35,11 @@ Android app (v1) that finds files untouched for a long time and removes them to 
 User asked to update the application to clean unused files on laptops. Phase 1 paused (purpose question unanswered) and brainstorming reopened.
 Decided:
 - Laptop REPLACES Android: v1 is a laptop-only (desktop) cleaner. Android design kept in spec as possible later release.
+- OS: Windows only for v1.
+- Trash: app's own 'StorageCleaner Trash' folder per drive (README + manifest, 30-day notify-and-confirm). Not the Windows Recycle Bin (size-limit permanent deletes, no bin on many USB/network drives, Storage Sense auto-empty bypasses confirmation).
+- Cache: current user account only, no admin. %TEMP% + curated list of known app cache folders (Chrome, Edge, Firefox, Teams, Slack, VS Code, Zoom, Spotify...). Cache folders only, never cookies/logins/history/settings. Skip running apps with 'close X' hint. Caches deleted permanently after confirmation dialog showing size per app (not trashed).
 Open questions:
-- Which desktop OSes (Windows / macOS / Linux)?
-- Laptop-specific design: OS Recycle Bin/Trash vs own trash, app caches, last-access time availability
+- Windows scan scope incl. OneDrive-synced folders and system/AppData exclusions
 
 ## Next
 - Resolve scope-change questions, revise spec, re-approve, then resume Phase 1
